@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Fichaje · Colchonería Blázquez</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1d3557">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+:root{
+  --azul:#1d3557;--azul2:#274b78;--fondo:#f1f4f8;--blanco:#fff;--texto:#1b2430;--gris:#6b7685;--linea:#dde3ea;
+  --verde:#1f9d55;--rojo:#d64545;--ambar:#e09b1a;--radio:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+input,select,textarea{font:inherit;padding:10px 12px;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--texto);width:100%}
+label{font-size:.85rem;color:var(--gris);display:block;margin:10px 0 4px}
+.oculto{display:none!important}
+
+/* ---------- QUIOSCO ---------- */
+#kiosco{min-height:100%;display:flex;flex-direction:column}
+.cab{background:var(--azul);color:#fff;padding:18px 24px;display:flex;align-items:center;gap:16px}
+.cab .marca{font-weight:700;font-size:1.15rem;line-height:1.2}
+.cab .marca small{display:block;font-weight:400;opacity:.75;font-size:.85rem}
+.cab .reloj{margin-left:auto;text-align:right}
+.cab .hora{font-size:2.6rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.cab .fecha{opacity:.8;font-size:.9rem}
+.btn-eng{background:rgba(255,255,255,.12);color:#fff;width:48px;height:48px;font-size:1.4rem;flex:none}
+.aviso{padding:10px 24px;font-size:.9rem;background:#fff4d6;color:#7a5600;border-bottom:1px solid #f0dca0}
+.aviso.err{background:#fde8e8;color:#8a1f1f;border-color:#f3c0c0}
+.cuerpo{padding:24px;flex:1}
+.cuerpo h2{font-size:1rem;color:var(--gris);font-weight:600;margin:6px 0 12px;text-transform:uppercase;letter-spacing:.04em}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:26px}
+.emp{background:#fff;border-radius:var(--radio);padding:20px 14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08);position:relative;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.emp:active{transform:scale(.97)}
+.avatar{width:54px;height:54px;border-radius:50%;background:var(--azul2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem}
+.emp .nom{font-weight:600;font-size:1.05rem}
+.emp .est{font-size:.8rem;color:var(--gris)}
+.punto{position:absolute;top:12px;right:12px;width:12px;height:12px;border-radius:50%;background:#c9d1db}
+.punto.dentro{background:var(--verde)}.punto.pausa{background:var(--ambar)}
+.vacio{background:#fff;border-radius:var(--radio);padding:30px;text-align:center;color:var(--gris)}
+.pie{padding:10px 24px;font-size:.8rem;color:var(--gris);display:flex;gap:16px}
+.estado-con::before{content:"●";margin-right:5px;color:var(--verde)}
+.estado-con.off::before{color:var(--rojo)}
+
+/* ---------- MODALES ---------- */
+.capa{position:fixed;inset:0;background:rgba(15,25,40,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:18px;width:100%;max-width:420px;padding:24px;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal.ancho{max-width:560px}
+.modal h3{margin:0 0 4px;font-size:1.3rem}
+.modal .sub{color:var(--gris);margin:0 0 16px;font-size:.95rem}
+.puntos{display:flex;gap:14px;justify-content:center;margin:18px 0}
+.puntos span{width:18px;height:18px;border-radius:50%;border:2px solid var(--azul2)}
+.puntos span.lleno{background:var(--azul2)}
+.puntos.error span{border-color:var(--rojo);animation:temblor .3s}
+@keyframes temblor{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.teclado button{height:66px;font-size:1.6rem;background:var(--fondo);font-weight:600}
+.teclado button:active{background:var(--linea)}
+.msg-err{color:var(--rojo);text-align:center;min-height:1.3em;font-size:.9rem}
+.acciones{display:grid;gap:12px;margin-top:8px}
+.acc{padding:20px;font-size:1.25rem;font-weight:700;color:#fff;border-radius:14px}
+.acc.entrada{background:var(--verde)}.acc.salida{background:var(--rojo)}
+.acc.pausa_inicio,.acc.pausa_fin{background:var(--ambar)}
+.btn{padding:11px 18px;background:var(--fondo);color:var(--texto);font-weight:600}
+.btn.pri{background:var(--azul);color:#fff}
+.btn.peligro{background:#fde8e8;color:var(--rojo)}
+.btn.peq{padding:6px 10px;font-size:.85rem}
+.fila-btn{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.hoy-lista{list-style:none;padding:0;margin:0 0 14px;font-size:.95rem}
+.hoy-lista li{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--linea)}
+.etq{display:inline-block;padding:3px 9px;border-radius:20px;font-size:.78rem;font-weight:600;color:#fff}
+.etq.entrada{background:var(--verde)}.etq.salida{background:var(--rojo)}.etq.pausa_inicio,.etq.pausa_fin{background:var(--ambar)}
+.toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:var(--texto);color:#fff;padding:18px 28px;border-radius:14px;font-size:1.15rem;z-index:90;box-shadow:0 10px 30px rgba(0,0,0,.3);text-align:center}
+.toast.ok{background:var(--verde)}
+
+/* ---------- ADMIN ---------- */
+#admin{min-height:100%}
+.tabs{display:flex;gap:6px;background:var(--azul);padding:0 18px;overflow-x:auto}
+.tabs button{background:none;color:rgba(255,255,255,.7);padding:14px 16px;border-radius:0;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button.act{color:#fff;border-color:#fff}
+.panel{padding:20px;max-width:1150px;margin:0 auto}
+.tarjeta{background:#fff;border-radius:var(--radio);padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:18px}
+.filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+.filtros label{margin-top:0}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--linea);vertical-align:top}
+th{font-size:.78rem;text-transform:uppercase;color:var(--gris);letter-spacing:.03em}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.det td{background:#f8fafc}
+.inc{color:#a35d00;font-size:.82rem}
+.anulado{text-decoration:line-through;color:#9aa4b1}
+.flag{font-size:.75rem;padding:2px 7px;border-radius:10px;background:var(--fondo);color:var(--gris);margin-left:4px}
+.flag.admin{background:#e6eefb;color:var(--azul2)}
+.flag.off{background:#fff4d6;color:#7a5600}
+.tabla-scroll{overflow-x:auto}
+.totales{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.totales div{background:var(--fondo);border-radius:10px;padding:8px 12px;font-size:.9rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.check{display:flex;align-items:center;gap:8px;margin-top:12px}
+.check input{width:auto}
+
+
+/* ---------- RESUMEN ---------- */
+.res-barra{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.seg{display:flex;background:var(--fondo);border-radius:10px;padding:3px}
+.seg button{background:none;padding:8px 16px;color:var(--gris);font-weight:600}
+.seg button.act{background:#fff;color:var(--texto);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.nav{display:flex;align-items:center;gap:10px;flex:1;justify-content:center}
+.nav strong{min-width:210px;text-align:center}
+.t-resumen th,.t-resumen td{text-align:center;white-space:nowrap}
+.t-resumen th:first-child,.t-resumen td:first-child{text-align:left;position:sticky;left:0;background:#fff}
+.t-resumen th small{display:block;font-weight:400;text-transform:none}
+.t-resumen td.c{cursor:pointer;font-variant-numeric:tabular-nums}
+.t-resumen td.c:hover{background:#eef3fa}
+.t-resumen td.vac{color:#c3cad3}
+.t-resumen td.tot,.t-resumen th.tot{background:#f3f6fa;font-weight:700}
+.t-resumen tr.pie-t td{border-top:2px solid var(--linea);font-weight:700;background:#fafbfd}
+.t-resumen th.hoy{color:var(--azul2)}
+.t-resumen .w{color:#c27b00;font-size:.8em}
+.modal .t-resumen td{white-space:normal;text-align:left}.modal .t-resumen td.num{text-align:right;white-space:nowrap}
+
+.seccion{margin:18px 0 2px;padding-top:14px;border-top:1px solid var(--linea);font-weight:700;color:var(--azul2);font-size:.95rem}
+.seccion:first-of-type{border-top:0;padding-top:0}
+.ficha-res{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px}
+.ficha-res div{background:var(--fondo);border-radius:10px;padding:8px 12px;font-size:.88rem}
+.ficha-res b{display:block;font-size:1.05rem}
+.t-resumen small.pact{display:block;font-weight:400;color:var(--gris);font-size:.75em}
+@media (max-width:600px){.grid2{grid-template-columns:1fr}}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:6px;margin:0;padding:8px 12px;border:1px solid var(--linea);border-radius:20px;color:var(--texto);font-size:.92rem;cursor:pointer}
+.chip input{width:auto;margin:0}
+.chip:has(input:checked){background:#e6eefb;border-color:var(--azul2);color:var(--azul2);font-weight:600}
+#k-otros{width:100%;padding:14px;background:#fff;border:1px dashed #b9c3cf;color:var(--gris)}
+
+.dif{font-weight:700;font-variant-numeric:tabular-nums}
+.dif.mas{color:#b45309}.dif.menos{color:var(--rojo)}
+.t-resumen td.aus{color:#2f6fbf;font-size:.82rem;font-weight:600;background:#eef4fc}
+.aus-lista{list-style:none;padding:0;margin:8px 0}
+.aus-lista li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--linea);font-size:.92rem}
+.aus-lista li .tipo{min-width:110px}
+.etq.vacaciones{background:#2f6fbf}.etq.asuntos{background:#7c5cc4}.etq.baja{background:#6b7685}.etq.permiso{background:#0f8a8a}.etq.otro{background:#8a8f98}
+.aus-nueva > div{min-width:0}.aus-nueva input,.aus-nueva select{min-width:0;padding-left:8px;padding-right:6px}
+.aus-nueva{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
+@media (max-width:600px){.aus-nueva{grid-template-columns:1fr 1fr}}
+
+.etq.pendiente{background:#e09b1a}.etq.aprobada{background:var(--verde)}.etq.rechazada{background:var(--rojo)}.etq.cancelada{background:#9aa4b1}
+.tabs .badge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:10px;background:#e09b1a;color:#fff;font-size:.75rem;font-weight:700}
+.sol{border:1px solid var(--linea);border-radius:12px;padding:14px;margin-bottom:12px}
+.sol.pend{border-color:#f0c56b;background:#fffaf0}
+.sol .cab-sol{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.aviso-coin{background:#fde8e8;color:#8a1f1f;border-radius:8px;padding:6px 10px;font-size:.85rem;margin-top:8px}
+.pedir{background:var(--fondo);border-radius:12px;padding:14px;margin-top:14px}
+
+/* ---------- MÓVIL ---------- */
+@media (max-width:600px){
+  .cab{padding:12px 14px;gap:10px}
+  .cab .marca{font-size:1rem}
+  .cab .hora{font-size:1.7rem}
+  .cab .fecha{font-size:.75rem}
+  .btn-eng{width:40px;height:40px;font-size:1.15rem}
+  .aviso{padding:8px 14px;font-size:.82rem}
+  .cuerpo{padding:14px}
+  .rejilla{grid-template-columns:repeat(2,1fr);gap:10px}
+  .emp{min-height:104px;padding:14px 8px}
+  .avatar{width:44px;height:44px;font-size:1.1rem}
+  .modal{padding:18px;border-radius:16px}
+  .teclado button{height:60px}
+  .acc{padding:18px;font-size:1.15rem}
+  .panel{padding:12px}
+  .tarjeta{padding:14px}
+  .toast{width:90%;bottom:24px;font-size:1.05rem}
+  .t-resumen{font-size:.8rem}.t-resumen th,.t-resumen td{padding:7px 5px}.nav strong{min-width:0;font-size:.9rem}.res-barra{gap:8px}
+  .pie{padding:8px 14px;flex-wrap:wrap}
+}
+.ayuda-tecl{text-align:center;font-size:.78rem;color:var(--gris);margin-top:10px}
+@media (pointer:coarse){.ayuda-tecl{display:none}}
+
+/* ---------- IMPRESIÓN ---------- */
+#print{display:none}
+@media print{
+  body.imprimiendo > *:not(#print){display:none!important}
+  body.imprimiendo #print{display:block}
+  body{background:#fff}
+  .hoja{page-break-after:always;font-size:11px;padding:10px}
+  .hoja:last-child{page-break-after:auto}
+  .hoja h1{font-size:16px;margin:0 0 4px}
+  .hoja table{font-size:10.5px}
+  .hoja th,.hoja td{padding:4px 6px;border:1px solid #bbb}
+  .firmas{display:flex;justify-content:space-between;margin-top:40px}
+  .firmas div{width:42%;border-top:1px solid #000;padding-top:6px;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- =================== QUIOSCO =================== -->
+<div id="kiosco">
+  <div class="cab">
+    <div class="marca">Colchonería Blázquez<small id="k-tienda">Registro de jornada</small></div>
+    <div class="reloj"><div class="hora" id="k-hora">--:--</div><div class="fecha" id="k-fecha"></div></div>
+    <button class="btn-eng" id="k-admin" title="Administración">⚙</button>
+  </div>
+  <div id="k-avisos"></div>
+  <div class="cuerpo">
+    <div id="k-lista"></div>
+  </div>
+  <div class="pie"><span id="k-con" class="estado-con">Conectado</span><span id="k-modo"></span></div>
+</div>
+
+<!-- =================== ADMIN =================== -->
+<div id="admin" class="oculto">
+  <div class="cab">
+    <div class="marca">Administración<small>Fichaje · Colchonería Blázquez</small></div>
+    <div class="reloj"><button class="btn" id="a-salir">Volver al fichaje</button></div>
+  </div>
+  <div class="tabs">
+    <button data-tab="resumen" class="act">Resumen</button>
+    <button data-tab="registros">Registros</button>
+    <button data-tab="informe">Informe mensual</button>
+    <button data-tab="empleados">Empleados</button>
+    <button data-tab="solicitudes">Solicitudes<span class="badge oculto" id="sol-badge"></span></button>
+    <button data-tab="ajustes">Ajustes</button>
+  </div>
+
+  <!-- Resumen -->
+  <div class="panel" data-panel="resumen">
+    <div class="tarjeta">
+      <div class="res-barra">
+        <div class="seg"><button data-modo="semana" class="act">Semana</button><button data-modo="mes">Mes</button></div>
+        <div class="nav"><button class="btn" id="r-ant">◀</button><strong id="r-tit"></strong><button class="btn" id="r-sig">▶</button></div>
+        <select id="r-lugar" style="width:auto"></select>
+        <button class="btn peq" id="r-hoy">Actual</button>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <div class="tabla-scroll"><table id="t-resumen" class="t-resumen"></table></div>
+      <p class="sub" style="font-size:.8rem;margin:10px 0 0">Horas netas (sin pausas). <b>Previstas</b> = horas de contrato repartidas en sus días de trabajo, descontando festivos, vacaciones y ausencias. <span class="dif mas">+</span> hace más de lo previsto · <span class="dif menos">−</span> hace menos. ⚠ = falta algún fichaje. Toca una celda para ver el detalle.</p>
+    </div>
+  </div>
+
+  <!-- Registros -->
+  <div class="panel oculto" data-panel="registros">
+    <div class="tarjeta">
+      <div class="filtros">
+        <div><label>Desde</label><input type="date" id="f-desde"></div>
+        <div><label>Hasta</label><input type="date" id="f-hasta"></div>
+        <div><label>Empleado</label><select id="f-emp"></select></div>
+        <div><label>Lugar del fichaje</label><select id="f-tienda"></select></div>
+        <div><button class="btn pri" id="f-buscar" style="width:100%">Buscar</button></div>
+      </div>
+      <div class="fila-btn" style="justify-content:flex-start">
+        <button class="btn peq" id="f-hoy">Hoy</button>
+        <button class="btn peq" id="f-semana">Esta semana</button>
+        <button class="btn peq" id="f-mes">Este mes</button>
+        <span style="flex:1"></span>
+        <button class="btn peq" id="f-nuevo">＋ Añadir fichaje olvidado</button>
+        <button class="btn peq" id="f-csv-res">CSV resumen</button>
+        <button class="btn peq" id="f-csv-det">CSV detalle</button>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <div class="tabla-scroll"><table id="t-res"></table></div>
+      <div class="totales" id="t-tot"></div>
+    </div>
+  </div>
+
+  <!-- Informe -->
+  <div class="panel oculto" data-panel="informe">
+    <div class="tarjeta">
+      <p style="margin-top:0">Hoja mensual de registro de jornada por trabajador, lista para imprimir o guardar en PDF y firmar.</p>
+      <div class="filtros">
+        <div><label>Mes</label><input type="month" id="i-mes"></div>
+        <div><label>Empleado</label><select id="i-emp"></select></div>
+        <div><button class="btn pri" id="i-gen" style="width:100%">Imprimir / PDF</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empleados -->
+  <div class="panel oculto" data-panel="empleados">
+    <div class="tarjeta">
+      <div class="fila-btn" style="margin-top:0;justify-content:space-between;align-items:center">
+        <strong>Plantilla</strong><button class="btn pri" id="e-nuevo">＋ Nuevo empleado</button>
+      </div>
+      <div class="tabla-scroll"><table id="t-emp"></table></div>
+    </div>
+  </div>
+
+  <!-- Solicitudes de vacaciones -->
+  <div class="panel oculto" data-panel="solicitudes">
+    <div class="tarjeta">
+      <div class="fila-btn" style="margin-top:0;justify-content:space-between;align-items:center">
+        <strong>Solicitudes de vacaciones</strong>
+        <div class="seg"><button data-solf="pendiente" class="act">Pendientes</button><button data-solf="todas">Todas</button></div>
+      </div>
+      <div id="sol-lista" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <!-- Ajustes -->
+  <div class="panel oculto" data-panel="ajustes">
+    <div class="tarjeta">
+      <strong>Este dispositivo</strong>
+      <label>Lugar de trabajo donde está este móvil u ordenador</label>
+      <select id="s-tienda"></select>
+      <p class="sub" style="margin-top:6px;font-size:.85rem">Se guarda solo en este dispositivo. Los empleados de esta tienda salen primero y cada fichaje queda marcado con la tienda.</p>
+      <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-tienda">Guardar</button></div>
+    </div>
+    <div class="tarjeta">
+      <strong>Lugares de trabajo</strong>
+      <label>Uno por línea (tiendas, almacén, reparto…)</label>
+      <textarea id="s-lugares" rows="6"></textarea>
+      <p class="sub" style="margin-top:6px;font-size:.85rem">Si cambias el nombre de un lugar, revisa los empleados que lo tenían asignado.</p>
+      <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-lugares">Guardar lugares</button></div>
+    </div>
+    <div class="tarjeta">
+      <strong>Fecha en que empezáis a fichar</strong>
+      <label>Antes de esta fecha no se cuentan horas previstas (así nadie sale con horas de menos por los días en que aún no se fichaba)</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input type="date" id="s-inicio" style="width:auto"><button class="btn pri" id="s-guardar-inicio">Guardar</button></div>
+    </div>
+    <div class="tarjeta">
+      <strong>Festivos</strong>
+      <label>Una fecha por línea (DD/MM/AAAA), con el nombre si quieres. Pon los nacionales, los de Castilla y León y los locales.</label>
+      <textarea id="s-festivos" rows="7" placeholder="08/12/2026 Inmaculada&#10;25/12/2026 Navidad"></textarea>
+      <p class="sub" style="margin-top:6px;font-size:.85rem">Esos días no cuentan como horas previstas.</p>
+      <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-festivos">Guardar festivos</button></div>
+    </div>
+    <div class="tarjeta" id="s-pinadmin">
+      <strong>PIN de administración</strong>
+      <div class="grid2">
+        <div><label>Nuevo PIN (4 dígitos)</label><input id="s-pin1" type="password" inputmode="numeric" maxlength="4"></div>
+        <div><label>Repetir PIN</label><input id="s-pin2" type="password" inputmode="numeric" maxlength="4"></div>
+      </div>
+      <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-pin">Cambiar PIN</button></div>
+    </div>
+    <div class="tarjeta" id="s-demo">
+      <strong>Modo demostración</strong>
+      <p class="sub" style="margin-top:6px">Los datos se guardan solo en este navegador. Para usarlo de verdad en las tiendas, pega la configuración de Firebase al principio del archivo (ver instrucciones).</p>
+      <div class="fila-btn" style="justify-content:flex-start">
+        <button class="btn peligro" id="s-reset">Empezar en blanco (borrar todos los ejemplos)</button>
+        <button class="btn" id="s-ejemplos">Volver a cargar los ejemplos</button>
+        <button class="btn peligro" id="s-horas0">Poner las horas a cero (borrar solo los fichajes)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="capas"></div>
+<div id="print"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN
+   1) Pega aquí el objeto firebaseConfig de tu proyecto (el mismo tipo
+      que usa la pizarra de reparto). Si se deja en null, la app funciona
+      en MODO DEMO guardando los datos solo en el navegador.
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBbpLffSVbRFaNJxE5gWyrRSW9WKaawIJ4",
+  authDomain: "fichaje-2dfb2.firebaseapp.com",
+  databaseURL: "https://fichaje-2dfb2-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "fichaje-2dfb2",
+  storageBucket: "fichaje-2dfb2.firebasestorage.app",
+  messagingSenderId: "211437981374",
+  appId: "1:211437981374:web:3e5a3be8bcb979cf0d58ef"
+};
+// Datos de la ficha que necesitan ver los propios empleados (horas, vacaciones). El resto (DNI, dirección…) solo lo ve el administrador.
+const CAMPOS_LABORALES = ['puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','vacAnuales','vacComputo','horario'];
+/* Ejemplo:
+const FIREBASE_CONFIG = {
+  apiKey: "AIza...",
+  authDomain: "tu-proyecto.firebaseapp.com",
+  databaseURL: "https://tu-proyecto-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tu-proyecto",
+  appId: "1:...:web:..."
+};
+*/
+const RAIZ = 'fichaje';                       // nodo raíz dentro de la base de datos
+const TIENDAS = ['Mirat','Carmelitas','Anaya','Almacén','Valladolid'];   // lista inicial; se puede cambiar en Ajustes
+const LUGARES = () => (CONFIG && Array.isArray(CONFIG.lugares) && CONFIG.lugares.length) ? CONFIG.lugares : TIENDAS;
+const lugaresDe = e => Array.isArray(e.lugares) && e.lugares.length ? e.lugares : (e.tienda ? [e.tienda] : []);
+const opcLugares = () => LUGARES().map(t=>`<option>${esc(t)}</option>`).join('');
+const PIN_INICIAL = '0000';                    // PIN provisional de todos los empleados nuevos (lo cambian al entrar)
+const MAX_INTENTOS = 5, BLOQUEO_SEG = 30;      // protección contra probar PINs
+const ADMIN_TIMEOUT_MIN = 15;                  // cierre automático del panel por inactividad
+
+/* ===================================================================== */
+const TIPOS = {entrada:'Entrada', salida:'Salida', pausa_inicio:'Inicio pausa', pausa_fin:'Fin pausa'};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const hhmm = ts => { const d=new Date(ts); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const claveDia = ts => { const d=new Date(ts); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const inicioDia = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,0,0,0,0).getTime(); };
+const finDia = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,23,59,59,999).getTime(); };
+const hoyStr = () => claveDia(Date.now());
+const fechaLarga = s => new Date(inicioDia(s)).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+const dur = ms => { if(ms==null) return '—'; const m=Math.round(ms/60000); return (m<0?'-':'')+Math.floor(Math.abs(m)/60)+'h '+pad(Math.abs(m)%60)+'m'; };
+const horasDec = ms => (ms/3600000).toFixed(2).replace('.',',');
+const iniciales = n => n.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+const lsGet = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const lsSet = (k,v) => { try{ localStorage.setItem(k,v); }catch(e){} };
+
+async function hashPin(pin, sal){
+  const txt = sal + ':' + pin;
+  if (window.crypto && crypto.subtle) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+    return 's:' + [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+  let h = 2166136261; for (const c of txt){ h ^= c.charCodeAt(0); h = Math.imul(h,16777619); }
+  return 'f:' + (h>>>0).toString(16);
+}
+
+/* ------------------------- CAPA DE DATOS ------------------------- */
+function crearLocal(){
+  const KEY = 'fichaje_demo_v6';
+  let d = null; try{ d = JSON.parse(lsGet(KEY)); }catch(e){}
+  const vacio = () => ({empleados:{},perfiles:{},ausencias:{},solicitudes:{},registros:{},config:{},auditoria:{}});
+  d = d || vacio();
+  const subs = new Set();
+  const guardar = () => { lsSet(KEY, JSON.stringify(d)); subs.forEach(f=>f()); };
+  const nid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  const filtrar = (a,b) => Object.entries(d.registros).filter(([,r])=>r.ts>=a && r.ts<=b)
+      .map(([k,r])=>({id:k,...r})).sort((x,y)=>x.ts-y.ts);
+  return {
+    modo:'demo',
+    vacio: () => !Object.keys(d.empleados).length && !d.config.adminPin,
+    onConexion(cb){ cb(true); },
+    onEmpleados(cb){ const f=()=>cb(JSON.parse(JSON.stringify(d.empleados))); subs.add(f); f(); return ()=>subs.delete(f); },
+    nuevoId: nid,
+    guardarEmpleado(id,o){ d.empleados[id]=o; guardar(); return Promise.resolve(id); },
+    cambiarPin(id,hash){ d.empleados[id].pin=hash; delete d.empleados[id].pinProvisional; guardar(); return Promise.resolve(); },
+    leerPerfiles(){ d.perfiles=d.perfiles||{}; return Promise.resolve(JSON.parse(JSON.stringify(d.perfiles))); },
+    guardarPerfil(id,o){ d.perfiles=d.perfiles||{}; d.perfiles[id]=o; guardar(); return Promise.resolve(); },
+    leerPerfil(id){ return Promise.resolve({...((d.perfiles||{})[id]||{})}); },
+    leerAusencias(){ d.ausencias=d.ausencias||{}; return Promise.resolve(JSON.parse(JSON.stringify(d.ausencias))); },
+    leerAusenciasDe(id){ return Promise.resolve(JSON.parse(JSON.stringify((d.ausencias||{})[id]||{}))); },
+    guardarAusencia(id,o){ d.ausencias=d.ausencias||{}; const k=nid(); (d.ausencias[id]=d.ausencias[id]||{})[k]=o; guardar(); return Promise.resolve(k); },
+    borrarAusencia(id,k){ if(d.ausencias&&d.ausencias[id]) delete d.ausencias[id][k]; guardar(); return Promise.resolve(); },
+    leerSolicitudes(){ d.solicitudes=d.solicitudes||{}; return Promise.resolve(JSON.parse(JSON.stringify(d.solicitudes))); },
+    leerSolicitudesDe(id){ return Promise.resolve(JSON.parse(JSON.stringify((d.solicitudes||{})[id]||{}))); },
+    guardarSolicitud(id,o){ d.solicitudes=d.solicitudes||{}; const k=nid(); (d.solicitudes[id]=d.solicitudes[id]||{})[k]=o; guardar(); return Promise.resolve(k); },
+    actualizarSolicitud(id,k,pt){ Object.assign(d.solicitudes[id][k],pt); guardar(); return Promise.resolve(); },
+    leerConfig(){ return Promise.resolve({...d.config}); },
+    guardarConfig(p){ Object.assign(d.config,p); guardar(); return Promise.resolve(); },
+    nuevoRegistro(o){ const k=nid(); d.registros[k]={...o, ts:o.ts||Date.now()}; guardar(); return Promise.resolve(k); },
+    actualizarRegistro(k,p){ Object.assign(d.registros[k],p); guardar(); return Promise.resolve(); },
+    consultar(a,b){ return Promise.resolve(filtrar(a,b)); },
+    escuchar(a,b,cb){ const f=()=>cb(filtrar(a,b)); subs.add(f); f(); return ()=>subs.delete(f); },
+    auditar(o){ d.auditoria[nid()]={...o, ts:Date.now()}; guardar(); return Promise.resolve(); },
+    reset(){ d = vacio(); guardar(); },
+    borrarFichajes(){ d.registros={}; guardar(); }
+  };
+}
+
+function crearFirebase(cfg){
+  firebase.initializeApp(cfg);
+  const db = firebase.database();
+  const auth = firebase.auth();
+  auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(()=>{});   // la sesión de administrador no se queda guardada en el aparato
+  const R = p => db.ref(RAIZ + '/' + p);
+  const TS = firebase.database.ServerValue.TIMESTAMP;
+  let conectado = false; const cbs = [];
+  db.ref('.info/connected').on('value', s => { conectado = !!s.val(); cbs.forEach(f=>f(conectado)); });
+  const lista = s => { const o=[]; s.forEach(c=>{ o.push({id:c.key, ...c.val()}); }); return o.sort((x,y)=>x.ts-y.ts); };
+  return {
+    modo:'firebase',
+    vacio: () => false,
+    onConexion(cb){ cbs.push(cb); cb(conectado); },
+    onEmpleados(cb){ const r=R('empleados'); const h=r.on('value', s=>cb(s.val()||{})); return ()=>r.off('value',h); },
+    nuevoId: () => R('empleados').push().key,
+    guardarEmpleado(id,o){ return R('empleados/'+id).set(o).then(()=>id); },
+    entrar(email,pass){ return auth.signInWithEmailAndPassword(email,pass); },
+    salir(){ return auth.signOut().catch(()=>{}); },
+    cambiarPin(id,hash){ return R('empleados/'+id).update({pin:hash, pinProvisional:null}); },
+    leerPerfiles(){ return Promise.all([R('perfiles').once('value'), R('laboral').once('value')]).then(([a,b])=>{
+      const per=a.val()||{}, lab=b.val()||{}, out={};
+      new Set([...Object.keys(per),...Object.keys(lab)]).forEach(id=>{ out[id]={...(per[id]||{}), ...(lab[id]||{})}; });
+      return out; }); },
+    guardarPerfil(id,o){ const lab={}, per={}; Object.entries(o).forEach(([k,v])=>{ (CAMPOS_LABORALES.includes(k)?lab:per)[k]=v; });
+      return Promise.all([R('laboral/'+id).set(lab), R('perfiles/'+id).set(per)]); },
+    leerPerfil(id){ return R('laboral/'+id).once('value').then(s=>s.val()||{}); },
+    leerAusencias(){ return R('ausencias').once('value').then(s=>s.val()||{}); },
+    leerAusenciasDe(id){ return R('ausencias/'+id).once('value').then(s=>s.val()||{}); },
+    guardarAusencia(id,o){ const r=R('ausencias/'+id).push(); return r.set(o).then(()=>r.key); },
+    borrarAusencia(id,k){ return R('ausencias/'+id+'/'+k).remove(); },
+    leerSolicitudes(){ return R('solicitudes').once('value').then(s=>s.val()||{}); },
+    leerSolicitudesDe(id){ return R('solicitudes/'+id).once('value').then(s=>s.val()||{}); },
+    guardarSolicitud(id,o){ const r=R('solicitudes/'+id).push(); return r.set(o).then(()=>r.key); },
+    actualizarSolicitud(id,k,pt){ return R('solicitudes/'+id+'/'+k).update(pt); },
+    leerConfig(){ return R('config').once('value').then(s=>s.val()||{}); },
+    guardarConfig(p){ return R('config').update(p); },
+    nuevoRegistro(o){
+      const ref = R('registros').push(); const v = {...o};
+      if (!v.ts) { if (conectado) v.ts = TS; else { v.ts = Date.now(); v.sinConexion = true; } }
+      ref.set(v);                         // sin await: si no hay red se sincroniza después
+      return Promise.resolve(ref.key);
+    },
+    actualizarRegistro(k,p){ return R('registros/'+k).update(p); },
+    consultar(a,b){ return R('registros').orderByChild('ts').startAt(a).endAt(b).once('value').then(lista); },
+    escuchar(a,b,cb){ const q=R('registros').orderByChild('ts').startAt(a).endAt(b); const h=q.on('value', s=>cb(lista(s))); return ()=>q.off('value',h); },
+    auditar(o){ return R('auditoria').push({...o, ts:TS}); },
+    reset(){}
+  };
+}
+
+let DB, errorCarga = '';
+if (FIREBASE_CONFIG) {
+  if (window.firebase) { try { DB = crearFirebase(FIREBASE_CONFIG); } catch(e){ errorCarga = 'Error al iniciar Firebase: '+e.message; } }
+  else errorCarga = 'No se pudo cargar Firebase (¿sin internet?). Funcionando en modo local.';
+}
+if (!DB) DB = crearLocal();
+
+/* ------------------------- CÁLCULO DE JORNADA ------------------------- */
+// regs: registros de un empleado y un día, ordenados y sin anulados
+function calcularDia(regs){
+  // entradaEf = hora de entrada que cuenta: la fichada menos el margen de entrada del empleado (sin solaparse con el tramo anterior)
+  let entrada=null, entradaEf=null, ultSalida=-Infinity, pIni=null, pausaTramo=0, neto=0, pausaTotal=0, margenTotal=0;
+  const tramos=[], inc=[];
+  for (const r of regs) {
+    if (r.tipo==='entrada') {
+      if (entrada!=null) { inc.push('Entrada '+hhmm(entrada)+' sin salida'); tramos.push([entrada,null]); }
+      entrada=r.ts; entradaEf=Math.max(r.ts-(Number(r.margen)||0)*60000, ultSalida); pIni=null; pausaTramo=0;
+    } else if (r.tipo==='pausa_inicio') {
+      if (entrada==null) inc.push('Pausa sin entrada');
+      else if (pIni!=null) inc.push('Pausa duplicada');
+      else pIni=r.ts;
+    } else if (r.tipo==='pausa_fin') {
+      if (pIni==null) inc.push('Fin de pausa sin inicio');
+      else { pausaTramo += r.ts-pIni; pIni=null; }
+    } else if (r.tipo==='salida') {
+      if (entrada==null) { inc.push('Salida '+hhmm(r.ts)+' sin entrada'); tramos.push([null,r.ts]); continue; }
+      if (pIni!=null) { pausaTramo += r.ts-pIni; pIni=null; inc.push('Pausa sin cerrar'); }
+      neto += (r.ts-entradaEf) - pausaTramo; pausaTotal += pausaTramo; margenTotal += entrada-entradaEf;
+      tramos.push([entrada,r.ts]); entrada=null; ultSalida=r.ts; pausaTramo=0;
+    }
+  }
+  const abierto = entrada!=null;
+  if (abierto) { tramos.push([entrada,null]); if (claveDia(entrada)!==hoyStr()) inc.push('Falta la salida de las '+hhmm(entrada)); }
+  return {tramos, neto, pausa:pausaTotal, margen:margenTotal, inc, abierto, inicioAbierto: abierto?entradaEf:null, enPausa: pIni!=null};
+}
+function estadoActual(regsHoy){
+  const v = regsHoy.filter(r=>!r.anulado);
+  const u = v[v.length-1];
+  if (!u || u.tipo==='salida') return 'fuera';
+  if (u.tipo==='pausa_inicio') return 'pausa';
+  return 'dentro';
+}
+/* ---------- Jornada prevista, ausencias y vacaciones ---------- */
+const TIPOS_AUS = {vacaciones:'Vacaciones', asuntos:'Asuntos propios', baja:'Baja', permiso:'Permiso', otro:'Otro'};
+const CORTO_AUS = {vacaciones:'Vac.', asuntos:'A.P.', baja:'Baja', permiso:'Perm.', otro:'Aus.'};
+const DIAS_SEM = [[1,'L'],[2,'M'],[3,'X'],[4,'J'],[5,'V'],[6,'S'],[0,'D']];
+const sumarDia = ts => { const x=new Date(ts); x.setDate(x.getDate()+1); return x.getTime(); };
+const numero = v => parseFloat(String(v??'').replace(',','.'));
+const diasTrabajo = p => Array.isArray(p.diasSemana) && p.diasSemana.length ? p.diasSemana.map(Number) : [1,2,3,4,5,6];
+const vacAnuales = p => numero(p.vacAnuales) || 30;
+// Vacaciones que le corresponden en un año: proporcionales a los días que está contratado ese año
+// (desde la fecha de alta y hasta la fecha de fin de contrato, si la hay). Se redondea al alza a días enteros.
+function vacCorresponden(p, year){
+  const base=vacAnuales(p), ini=new Date(year,0,1).getTime(), fin=new Date(year,11,31).getTime();
+  let a=ini, b=fin;
+  if(p.alta){ const al=inicioDia(p.alta); if(al>fin) return 0; if(al>a) a=al; }
+  if(p.bajaContrato){ const bj=inicioDia(p.bajaContrato); if(bj<ini) return 0; if(bj<b) b=bj; }
+  if(a===ini && b===fin) return base;
+  const diasAno=Math.round((fin-ini)/864e5)+1, diasCont=Math.round((b-a)/864e5)+1;
+  return Math.ceil(base*diasCont/diasAno);
+}
+function explicaVac(p, year){
+  const base=vacAnuales(p), c=vacCorresponden(p,year);
+  if(!p.alta) return 'Sin fecha de alta: se cuenta el año completo';
+  if(c===base) return 'Año completo';
+  const fd=s=>s.split('-').reverse().join('/');
+  const al=p.alta.slice(0,4)==String(year)?'alta el '+fd(p.alta):'', bj=p.bajaContrato&&p.bajaContrato.slice(0,4)==String(year)?'fin de contrato el '+fd(p.bajaContrato):'';
+  return 'Proporcional: '+[al,bj].filter(Boolean).join(' y ')+' ('+base+' días por año completo)';
+}
+const festivosSet = () => new Set((CONFIG && CONFIG.festivos) || []);
+function mapaAusencias(aus){
+  const m=new Map();
+  Object.values(aus||{}).forEach(a=>{ let d=inicioDia(a.desde); const f=inicioDia(a.hasta); while(d<=f){ m.set(claveDia(d), a.tipo); d=sumarDia(d); } });
+  return m;
+}
+// hechasHoy: horas ya trabajadas hoy. El día de hoy solo cuenta como previsto lo que ya se ha trabajado (hasta su jornada), para no salir en negativo a media jornada.
+function previstas(p, ausMap, desde, hasta, hechasHoy=0){
+  const hs=numero(p.horasSemana); if(!hs) return null;
+  const dias=diasTrabajo(p), porDia=hs/dias.length*3600000, fest=festivosSet();
+  let d=inicioDia(desde), f=Math.min(inicioDia(hasta), inicioDia(hoyStr()));
+  if(p.alta && inicioDia(p.alta)>d) d=inicioDia(p.alta);
+  if(CONFIG && CONFIG.inicioFichaje && inicioDia(CONFIG.inicioFichaje)>d) d=inicioDia(CONFIG.inicioFichaje);   // antes de empezar a fichar no se prevé nada
+  let ms=0;
+  const hoy=hoyStr();
+  while(d<=f){ const k=claveDia(d); if(dias.includes(new Date(d).getDay()) && !fest.has(k) && !ausMap.has(k)) ms += (k===hoy ? Math.min(hechasHoy, porDia) : porDia); d=sumarDia(d); }
+  return ms;
+}
+// Días que cuentan de un periodo: en "laborables" no cuentan los días que no trabaja (p. ej. domingos) ni los festivos
+function diasQueCuentan(p, desde, hasta, year=null){
+  const lab=p.vacComputo==='laborables', dias=diasTrabajo(p), fest=festivosSet(); let n=0, d=inicioDia(desde); const f=inicioDia(hasta);
+  while(d<=f){ const dt=new Date(d); if((year==null || dt.getFullYear()===year) && (!lab || (dias.includes(dt.getDay()) && !fest.has(claveDia(d))))) n++; d=sumarDia(d); }
+  return n;
+}
+function textoDias(p, a){
+  const nat=Math.round((inicioDia(a.hasta)-inicioDia(a.desde))/86400000)+1;
+  if(p.vacComputo!=='laborables') return nat+' día'+(nat>1?'s':'');
+  const lab=diasQueCuentan(p,a.desde,a.hasta);
+  return lab+' día'+(lab!==1?'s':'')+' laborable'+(lab!==1?'s':'')+(lab!==nat?` <span style="color:var(--gris)">(${nat} naturales; no cuentan domingos/días libres ni festivos)</span>`:'');
+}
+function vacacionesUsadas(p, aus, year){
+  return Object.values(aus||{}).filter(a=>a.tipo==='vacaciones').reduce((t,a)=>t+diasQueCuentan(p,a.desde,a.hasta,year),0);
+}
+const fCortaISO = s => new Date(inicioDia(s)).toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
+const ESTADOS_SOL = {pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rechazada', cancelada:'Cancelada'};
+// Compañeros que comparten lugar de trabajo y tienen ausencia o solicitud que se solapa con ese periodo
+function coincidencias(empId, desde, hasta, ausTodas, solTodas){
+  const mis = lugaresDe(EMPLEADOS[empId]||{}), out=[];
+  Object.entries(EMPLEADOS).forEach(([id,e])=>{
+    if(id===empId || e.activo===false || !lugaresDe(e).some(l=>mis.includes(l))) return;
+    Object.values((ausTodas||{})[id]||{}).forEach(a=>{ if(a.desde<=hasta && a.hasta>=desde) out.push(`${e.nombre}: ${TIPOS_AUS[a.tipo].toLowerCase()} ${fCortaISO(a.desde)}–${fCortaISO(a.hasta)}`); });
+    Object.values((solTodas||{})[id]||{}).forEach(a=>{ if(a.estado==='pendiente' && a.desde<=hasta && a.hasta>=desde) out.push(`${e.nombre}: pidió ${fCortaISO(a.desde)}–${fCortaISO(a.hasta)} (pendiente)`); });
+  });
+  return out;
+}
+
+const difHTML = (hechas, prev) => { if(prev==null) return '—'; const d=hechas-prev; const cls=Math.abs(d)<15*60000?'':(d>0?'mas':'menos'); return `<span class="dif ${cls}">${d>=0?'+':'−'}${dur(Math.abs(d))}</span>`; };
+
+const ACCIONES = {fuera:['entrada'], dentro:['pausa_inicio','salida'], pausa:['pausa_fin','salida']};
+const TXT_ESTADO = {fuera:'Fuera', dentro:'Trabajando', pausa:'En pausa'};
+
+/* ------------------------- ESTADO GLOBAL ------------------------- */
+let EMPLEADOS = {}, PERFILES = {}, AUSENCIAS = {}, SOLICITUDES = {}, CONFIG = {}, REG_HOY = [], diaEscucha = null, desEscuchaHoy = null;
+let tiendaTablet = lsGet('fichaje_tienda') || '';
+const intentos = {};   // id -> {n, hasta}
+
+/* ------------------------- UTILIDADES UI ------------------------- */
+function toast(txt, ok){
+  document.querySelectorAll('.toast').forEach(x=>x.remove());
+  const t=document.createElement('div'); t.className='toast'+(ok?' ok':''); t.innerHTML=txt;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 3500);
+}
+function abrirModal(html, ancho){
+  const c=document.createElement('div'); c.className='capa';
+  c.innerHTML='<div class="modal'+(ancho?' ancho':'')+'">'+html+'</div>';
+  // Cerrar tocando fuera solo si el gesto empieza y acaba fuera, y nunca en ventanas con formularios
+  let abajoFuera=false;
+  c.addEventListener('pointerdown', e=>{ abajoFuera = e.target===c; });
+  c.addEventListener('click', e=>{ if(e.target===c && abajoFuera && !c.querySelector('input:not([type=checkbox]):not([type=radio]),textarea')) cerrar(); abajoFuera=false; });
+  $('#capas').appendChild(c);
+  let timer=null;
+  const cerrar=()=>{ clearTimeout(timer); c.remove(); };
+  const m={el:c.firstChild, cerrar, autoCerrar(seg){ clearTimeout(timer); timer=setTimeout(cerrar, seg*1000); }, onTecla:null};
+  c._modal=m;
+  return m;
+}
+/* Confirmación propia (no depende de las ventanas del navegador, que se pueden bloquear) */
+function confirmar(texto, boton='Sí, borrar'){
+  return new Promise(res=>{
+    const m=abrirModal(`<h3>¿Seguro?</h3><p class="sub">${esc(texto)}</p>
+      <div class="fila-btn"><button class="btn" data-no>Cancelar</button><button class="btn peligro" data-si>${esc(boton)}</button></div>`);
+    let hecho=false; const fin=v=>{ if(hecho) return; hecho=true; m.cerrar(); res(v); };
+    m.el.addEventListener('click',e=>{ if(e.target.dataset.si!=null) fin(true); if(e.target.dataset.no!=null) fin(false); });
+    m.onTecla=e=>{ if(e.key==='Escape'){ e.preventDefault(); fin(false); } else if(e.key==='Enter'){ e.preventDefault(); fin(true); } };
+  });
+}
+function cerrarTodo(){ $('#capas').innerHTML=''; }
+// Teclado físico (ordenadores): lo recibe el modal que esté encima
+document.addEventListener('keydown', e=>{
+  const capas=$('#capas').children; if(!capas.length) return;
+  const m=capas[capas.length-1]._modal; if(!m) return;
+  if(e.target.matches && e.target.matches('input,textarea,select')) { if(e.key==='Escape') m.cerrar(); return; }
+  if(m.onTecla) return m.onTecla(e);
+  if(e.key==='Escape') { m.cerrar(); return; }
+  const accs=m.el.querySelectorAll('.acc');
+  if(accs.length && /^[1-9]$/.test(e.key) && accs[+e.key-1]) { accs[+e.key-1].click(); e.preventDefault(); }
+});
+
+/* Teclado de PIN. onPin(pin) devuelve Promise<true|string(error)> */
+function pedirPin(titulo, sub, onPin, claveBloqueo){
+  const m = abrirModal(`
+    <h3>${esc(titulo)}</h3><p class="sub">${esc(sub)}</p>
+    <div class="puntos"><span></span><span></span><span></span><span></span></div>
+    <div class="msg-err"></div>
+    <div class="teclado">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-n="${n}">${n}</button>`).join('')}
+      <button data-n="x" style="font-size:1rem">Cancelar</button><button data-n="0">0</button><button data-n="b">⌫</button></div>
+    <div class="ayuda-tecl">También puedes escribir el PIN con el teclado · Esc para cancelar</div>`);
+  m.autoCerrar(30);
+  let pin='';
+  const pts=m.el.querySelectorAll('.puntos span'), err=m.el.querySelector('.msg-err'), cont=m.el.querySelector('.puntos');
+  const pintar=()=>pts.forEach((p,i)=>p.classList.toggle('lleno', i<pin.length));
+  const bloqueado=()=>{ const b=intentos[claveBloqueo]; return b && b.hasta>Date.now() ? Math.ceil((b.hasta-Date.now())/1000) : 0; };
+  const pulsar = async n => {
+    m.autoCerrar(30);
+    if(n==='x') return m.cerrar();
+    if(n==='b'){ pin=pin.slice(0,-1); pintar(); return; }
+    const s=bloqueado(); if(s){ err.textContent='Demasiados intentos. Espera '+s+' s'; return; }
+    if(pin.length>=4) return;
+    pin+=n; pintar(); err.textContent='';
+    if(pin.length===4){
+      const res = await onPin(pin);
+      if(res===true){ delete intentos[claveBloqueo]; m.cerrar(); return; }
+      const b = intentos[claveBloqueo] = intentos[claveBloqueo] || {n:0,hasta:0};
+      b.n++; if(b.n>=MAX_INTENTOS){ b.hasta=Date.now()+BLOQUEO_SEG*1000; b.n=0; }
+      err.textContent = typeof res==='string' ? res : 'PIN incorrecto';
+      cont.classList.add('error'); setTimeout(()=>cont.classList.remove('error'),400);
+      pin=''; pintar();
+    }
+  };
+  m.el.querySelector('.teclado').addEventListener('click', e=>{ const n=e.target.dataset.n; if(n!=null) pulsar(n); });
+  m.onTecla = e=>{
+    if(/^[0-9]$/.test(e.key)) pulsar(e.key);
+    else if(e.key==='Backspace') pulsar('b');
+    else if(e.key==='Escape') pulsar('x');
+    else return;
+    e.preventDefault();
+  };
+}
+
+/* ------------------------- QUIOSCO ------------------------- */
+function tic(){
+  const n=new Date();
+  $('#k-hora').textContent = pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+  const f = n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); $('#k-fecha').textContent = f[0].toUpperCase()+f.slice(1);
+  if (diaEscucha !== hoyStr()) escucharHoy();
+}
+function escucharHoy(){
+  diaEscucha = hoyStr();
+  if (desEscuchaHoy) desEscuchaHoy();
+  desEscuchaHoy = DB.escuchar(inicioDia(diaEscucha), finDia(diaEscucha), regs=>{ REG_HOY=regs; pintarKiosco(); });
+}
+function regsHoyDe(id){ return REG_HOY.filter(r=>r.empId===id); }
+
+function pintarKiosco(){
+  $('#k-tienda').textContent = tiendaTablet ? tiendaTablet : 'Registro de jornada';
+  const activos = Object.entries(EMPLEADOS).filter(([,e])=>e.activo!==false)
+    .sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es'));
+  const avisos=[];
+  if (errorCarga) avisos.push(`<div class="aviso err">${esc(errorCarga)}</div>`);
+  if (DB.modo==='demo') avisos.push(lsGet('fichaje_sin_ejemplos')==='1'
+      ? '<div class="aviso">Modo local: los datos solo se guardan en este navegador (sin conexión a Firebase).</div>'
+      : '<div class="aviso">Modo demostración: los datos solo se guardan en este navegador. PIN de empleados: <b>0000</b> (la primera vez pide elegir uno propio) · PIN de administración: <b>0000</b>.</div>');
+  if (DB.modo==='firebase' ? !Object.keys(EMPLEADOS).length : !CONFIG.adminPin) avisos.push(DB.modo==='firebase' ? '<div class="aviso">Primer uso: pulsa ⚙, entra con tu correo de administrador y da de alta a los empleados.</div>' : '<div class="aviso">Primer uso: pulsa ⚙ para crear el PIN de administración y dar de alta a los empleados.</div>');
+  
+  $('#k-avisos').innerHTML = avisos.join('');
+
+  if (!activos.length){ $('#k-lista').innerHTML='<div class="vacio">Todavía no hay empleados. Pulsa ⚙ → Empleados → <b>＋ Nuevo empleado</b>.</div>'; return; }
+  const tarjeta = ([id,e]) => {
+    const est = estadoActual(regsHoyDe(id));
+    return `<button class="emp" data-id="${id}"><span class="punto ${est}"></span>
+      <div class="avatar">${esc(iniciales(e.nombre))}</div><div class="nom">${esc(e.nombre)}</div>
+      <div class="est">${TXT_ESTADO[est]}</div></button>`;
+  };
+  const deAqui = activos.filter(([,e])=>tiendaTablet && lugaresDe(e).includes(tiendaTablet));
+  const resto = activos.filter(x=>!deAqui.includes(x));
+  let h='';
+  if (!tiendaTablet) {
+    h = `<h2>Toca tu nombre para fichar</h2><div class="rejilla">${activos.map(tarjeta).join('')}</div>`;
+  } else {
+    h = deAqui.length ? `<h2>${esc(tiendaTablet)}</h2><div class="rejilla">${deAqui.map(tarjeta).join('')}</div>`
+                      : `<div class="vacio" style="margin-bottom:20px">No hay empleados asignados a ${esc(tiendaTablet)}.</div>`;
+    if (resto.length) h += verOtros
+      ? `<h2>De otros lugares <button class="btn peq" id="k-ocultar" style="margin-left:8px">Ocultar</button></h2><div class="rejilla">${resto.map(tarjeta).join('')}</div>`
+      : `<button class="btn" id="k-otros">¿Hoy trabajas aquí y no sales? Ver empleados de otros lugares</button>`;
+  }
+  $('#k-lista').innerHTML = h;
+}
+
+let verOtros=false, timerOtros=null;
+$('#k-lista').addEventListener('click', e=>{
+  if (e.target.id==='k-otros') { verOtros=true; clearTimeout(timerOtros); timerOtros=setTimeout(()=>{ verOtros=false; pintarKiosco(); }, 60000); return pintarKiosco(); }
+  if (e.target.id==='k-ocultar') { verOtros=false; return pintarKiosco(); }
+  const b=e.target.closest('.emp'); if(!b) return;
+  const id=b.dataset.id, emp=EMPLEADOS[id]; if(!emp) return;
+  pedirPin(emp.nombre, 'Introduce tu PIN', async pin=>{
+    if (await hashPin(pin,id) !== emp.pin) return 'PIN incorrecto';
+    setTimeout(()=> emp.pinProvisional ? nuevoPinEmpleado(id, pin, true) : mostrarAcciones(id), 50);
+    return true;
+  }, 'emp:'+id);
+});
+
+function mostrarAcciones(id){
+  const emp=EMPLEADOS[id], regs=regsHoyDe(id).filter(r=>!r.anulado), est=estadoActual(regs);
+  const lista = regs.length ? '<ul class="hoy-lista">'+regs.map(r=>`<li><span class="etq ${r.tipo}">${TIPOS[r.tipo]}</span><b>${hhmm(r.ts)}</b></li>`).join('')+'</ul>' : '<p class="sub">Aún no has fichado hoy.</p>';
+  const c = calcularDia(regs);
+  const llevas = (est!=='fuera' && c.abierto) ? (()=>{ const t=c.inicioAbierto; return '<p class="sub">Llevas '+dur(c.neto + (Date.now()-t))+' hoy'+(emp.margenEntrada?' (incluye '+emp.margenEntrada+' min de margen de entrada)':'')+'.</p>'; })()
+                 : (c.neto? '<p class="sub">Total hoy: '+dur(c.neto)+'</p>':'');
+  DB.leerSolicitudesDe(id).then(sl=>{ const box=document.getElementById('sol-aviso-'+id); if(!box) return;
+    const nuevas=Object.values(sl||{}).filter(a=>(a.estado==='aprobada'||a.estado==='rechazada') && (a.respondida||0)>Date.now()-7*864e5);
+    const pend=Object.values(sl||{}).filter(a=>a.estado==='pendiente').length;
+    box.innerHTML = nuevas.map(a=>`<div class="aviso-coin" style="background:${a.estado==='aprobada'?'#e5f6ec;color:#14532d':'#fde8e8'}">Tu solicitud del ${fCortaISO(a.desde)} al ${fCortaISO(a.hasta)} ha sido <b>${a.estado}</b>${a.respuesta?': '+esc(a.respuesta):''}</div>`).join('')
+      + (pend?`<p class="sub" style="margin:8px 0 0;font-size:.85rem">Tienes ${pend} solicitud${pend>1?'es':''} de vacaciones pendiente${pend>1?'s':''}.</p>`:''); });
+  const m = abrirModal(`<h3>Hola, ${esc(emp.nombre.split(' ')[0])}</h3><div id="sol-aviso-${id}"></div>
+    <p class="sub">Estado: <b>${TXT_ESTADO[est]}</b></p>${lista}${llevas}
+    ${(!tiendaTablet && lugaresDe(emp).length>1) ? `<p class="sub" style="margin-bottom:6px">¿Dónde estás trabajando?</p><div class="chips">${lugaresDe(emp).map(l=>`<button class="btn" data-lugar="${esc(l)}">${esc(l)}</button>`).join('')}</div><div class="msg-err" id="lug-err" style="text-align:left"></div>` : ''}
+    <div class="acciones">${ACCIONES[est].map((t,i)=>`<button class="acc ${t}" data-t="${t}">${TIPOS[t]}</button>`).join('')}</div>
+    <div class="ayuda-tecl">Con teclado: ${ACCIONES[est].map((t,i)=>(i+1)+' = '+TIPOS[t]).join(' · ')} · Esc para cancelar</div>
+    <div class="fila-btn" style="justify-content:space-between"><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-mis>📊 Mis horas</button><button class="btn" data-vac>🏖 Mis vacaciones</button><button class="btn" data-pin>🔑 Cambiar mi PIN</button></span><button class="btn" data-x>Cancelar</button></div>`);
+  m.autoCerrar(20);
+  m.el.addEventListener('click', async e=>{
+    if (e.target.dataset.x!=null) return m.cerrar();
+    if (e.target.dataset.mis!=null) { m.cerrar(); return misHoras(id); }
+    if (e.target.dataset.pin!=null) { m.cerrar(); return nuevoPinEmpleado(id, null, false); }
+    if (e.target.dataset.vac!=null) { m.cerrar(); return misVacaciones(id); }
+    if (e.target.dataset.lugar) { m.el.querySelectorAll('[data-lugar]').forEach(b=>b.classList.toggle('pri', b===e.target)); m.el.querySelector('#lug-err').textContent=''; return; }
+    const t=e.target.dataset.t; if(!t) return;
+    // Lugar: el del dispositivo; si no tiene, el del empleado (si tiene varios, el que elija)
+    let lugar = tiendaTablet;
+    if (!lugar) {
+      const ls=lugaresDe(emp);
+      if (ls.length>1) { const sel=m.el.querySelector('[data-lugar].pri'); if(!sel) { m.el.querySelector('#lug-err').textContent='Elige dónde estás trabajando'; return; } lugar=sel.dataset.lugar; }
+      else lugar = ls[0]||'';
+    }
+    e.target.disabled=true;
+    const fuera = !!(lugar && lugaresDe(emp).length && !lugaresDe(emp).includes(lugar));
+    await DB.nuevoRegistro({empId:id, nombre:emp.nombre, tipo:t, tienda:lugar, origen:tiendaTablet?'dispositivo':'personal', ...(fuera?{fueraDeLugar:true}:{}), ...(t==='entrada' && Number(emp.margenEntrada)>0 ? {margen:Number(emp.margenEntrada)} : {})});
+    verOtros=false;
+    m.cerrar();
+    toast(`<b>${TIPOS[t]}</b> registrada · ${hhmm(Date.now())}<br>${esc(emp.nombre)}${lugar?' · '+esc(lugar):''}`, true);
+  });
+}
+
+/* El empleado elige su PIN personal (obligatorio si el que tiene es provisional) */
+function nuevoPinEmpleado(id, pinActual, obligatorio){
+  const emp=EMPLEADOS[id];
+  const sub1 = obligatorio ? 'Tu PIN es provisional. Elige uno nuevo de 4 cifras que solo sepas tú.' : 'Escribe tu nuevo PIN de 4 cifras.';
+  pedirPin(obligatorio?'Elige tu PIN personal':'Cambiar mi PIN', sub1, async p1=>{
+    if (/^(\d)\1{3}$/.test(p1) || ['1234','4321','0123','9876'].includes(p1)) return 'Demasiado fácil, elige otro';
+    if (pinActual && p1===pinActual) return 'Tiene que ser distinto del provisional';
+    setTimeout(()=>pedirPin('Repite el nuevo PIN','Para confirmar', async p2=>{
+      if (p2!==p1) { setTimeout(()=>toast('Los PIN no coinciden. Vuelve a intentarlo.'),50); return true; }
+      await DB.cambiarPin(id, await hashPin(p1,id));
+      await DB.auditar({accion:'el empleado cambia su PIN', empId:id, nombre:emp.nombre});
+      setTimeout(()=>{ toast('PIN guardado. A partir de ahora solo tú lo sabes.', true); if(obligatorio) mostrarAcciones(id); },50);
+      return true;
+    }, 'pin2:'+id),50);
+    return true;
+  }, 'pin1:'+id);
+}
+
+function loginAdmin(){
+  const m=abrirModal(`<h3>Administración</h3><p class="sub">Entra con el correo y la contraseña de administrador.</p>
+    <label>Correo</label><input id="la-email" type="email" autocomplete="username" value="${esc(lsGet('fichaje_admin_email')||'')}">
+    <label>Contraseña</label><input id="la-pass" type="password" autocomplete="current-password">
+    <div class="msg-err" id="la-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Entrar</button></div>`);
+  setTimeout(()=>m.el.querySelector(lsGet('fichaje_admin_email')?'#la-pass':'#la-email').focus(),50);
+  const entrar=async()=>{
+    const email=m.el.querySelector('#la-email').value.trim(), pass=m.el.querySelector('#la-pass').value, err=m.el.querySelector('#la-err');
+    if(!email||!pass) return err.textContent='Escribe el correo y la contraseña';
+    err.textContent='Entrando…';
+    try{ await DB.entrar(email,pass); lsSet('fichaje_admin_email',email); m.cerrar(); CONFIG=await DB.leerConfig(); abrirAdmin(); }
+    catch(e){ const c=e&&e.code||''; err.textContent = /invalid|wrong|not-found|user/.test(c) ? 'Correo o contraseña incorrectos' : /too-many/.test(c) ? 'Demasiados intentos. Espera unos minutos.' : /network/.test(c) ? 'Sin conexión a internet' : 'No se pudo entrar ('+c+')'; }
+  };
+  m.el.addEventListener('click',e=>{ if(e.target.dataset.x!=null) m.cerrar(); if(e.target.dataset.ok!=null) entrar(); });
+  m.el.querySelector('#la-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') entrar(); });
+}
+
+$('#k-admin').addEventListener('click', async ()=>{
+  if (DB.modo==='firebase') return loginAdmin();
+  CONFIG = await DB.leerConfig();
+  if (!CONFIG.adminPin) return crearPinAdmin();
+  pedirPin('Administración','PIN de administración', async pin=>{
+    if (await hashPin(pin,'admin') !== CONFIG.adminPin) return 'PIN incorrecto';
+    setTimeout(abrirAdmin, 50); return true;
+  }, 'admin');
+});
+function crearPinAdmin(){
+  const m=abrirModal(`<h3>Crear PIN de administración</h3><p class="sub">Con este PIN se entra a registros, correcciones y empleados. No lo compartas con la plantilla.</p>
+    <label>PIN (4 dígitos)</label><input id="np1" type="password" inputmode="numeric" maxlength="4">
+    <label>Repetir PIN</label><input id="np2" type="password" inputmode="numeric" maxlength="4">
+    <div class="msg-err" id="np-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`);
+  m.el.addEventListener('click', async e=>{
+    if(e.target.dataset.x!=null) return m.cerrar();
+    if(e.target.dataset.ok==null) return;
+    const a=m.el.querySelector('#np1').value, b=m.el.querySelector('#np2').value;
+    if(!/^\d{4}$/.test(a)) return m.el.querySelector('#np-err').textContent='Deben ser 4 números';
+    if(a!==b) return m.el.querySelector('#np-err').textContent='Los PIN no coinciden';
+    await DB.guardarConfig({adminPin: await hashPin(a,'admin')});
+    CONFIG = await DB.leerConfig(); m.cerrar(); abrirAdmin();
+  });
+}
+
+/* ------------------------- ADMIN ------------------------- */
+let timerAdmin=null;
+function tocarAdmin(){ clearTimeout(timerAdmin); timerAdmin=setTimeout(salirAdmin, ADMIN_TIMEOUT_MIN*60000); }
+function abrirAdmin(){
+  $('#kiosco').classList.add('oculto'); $('#admin').classList.remove('oculto');
+  rellenarSelects(); $('#s-tienda').value = tiendaTablet;
+  Promise.all([DB.leerPerfiles(), DB.leerAusencias(), DB.leerConfig(), DB.leerSolicitudes()]).then(([p,a,c,sl])=>{ PERFILES=p; AUSENCIAS=a; CONFIG=c; SOLICITUDES=sl; rellenarSelects(); pintarEmpleados(); pintarResumen(); pintarSolicitudes(); });
+  $('#s-demo').classList.toggle('oculto', DB.modo!=='demo');
+  $('#s-pinadmin').classList.toggle('oculto', DB.modo==='firebase');
+  if(!$('#f-desde').value){ rango('mes'); }
+  buscar(); pintarResumen(); tocarAdmin();
+}
+function salirAdmin(){
+  clearTimeout(timerAdmin); cerrarTodo(); PERFILES={}; AUSENCIAS={}; SOLICITUDES={};
+  if (DB.salir) DB.salir();   // cierra la sesión de administrador: el aparato vuelve a ser solo para fichar
+  $('#admin').classList.add('oculto'); $('#kiosco').classList.remove('oculto'); pintarKiosco();
+}
+$('#a-salir').addEventListener('click', salirAdmin);
+['pointerdown','keydown','input','wheel'].forEach(ev=>document.addEventListener(ev, ()=>{ if(!$('#admin').classList.contains('oculto')) tocarAdmin(); }, {passive:true, capture:true}));
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('act', x===b));
+  document.querySelectorAll('[data-panel]').forEach(p=>p.classList.toggle('oculto', p.dataset.panel!==b.dataset.tab));
+}));
+
+function empOrdenados(){ return Object.entries(EMPLEADOS).sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es')); }
+function rellenarSelects(){
+  const opsEmp = empOrdenados().map(([id,e])=>`<option value="${id}">${esc(e.nombre)}${e.activo===false?' (baja)':''}</option>`).join('');
+  const keep = s => { const v=$(s).value; return v; };
+  const v1=keep('#f-emp'), v2=keep('#i-emp'), v3=keep('#f-tienda');
+  $('#f-emp').innerHTML = '<option value="">Todos</option>'+opsEmp; $('#f-emp').value=v1||'';
+  $('#i-emp').innerHTML = '<option value="">Todos (una hoja por persona)</option>'+opsEmp; $('#i-emp').value=v2||'';
+  $('#f-tienda').innerHTML = '<option value="">Todos</option>'+opcLugares(); $('#f-tienda').value=v3||'';
+  const v4=$('#r-lugar').value; $('#r-lugar').innerHTML = '<option value="">Todos los lugares</option>'+opcLugares(); $('#r-lugar').value=v4||'';
+  $('#s-tienda').innerHTML = '<option value="">— Sin asignar —</option>'+opcLugares(); $('#s-tienda').value=tiendaTablet;
+  $('#s-lugares').value = LUGARES().join('\n');
+  $('#s-festivos').value = (CONFIG.festivosTxt || '');
+  $('#s-inicio').value = CONFIG.inicioFichaje || '';
+  if(!$('#i-mes').value){ const n=new Date(); $('#i-mes').value=n.getFullYear()+'-'+pad(n.getMonth()+1); }
+}
+
+function rango(tipo){
+  const n=new Date(); let a=new Date(n), b=new Date(n);
+  if(tipo==='semana'){ const dw=(n.getDay()+6)%7; a.setDate(n.getDate()-dw); }
+  if(tipo==='mes'){ a=new Date(n.getFullYear(),n.getMonth(),1); b=new Date(n.getFullYear(),n.getMonth()+1,0); }
+  $('#f-desde').value=claveDia(a.getTime()); $('#f-hasta').value=claveDia(b.getTime());
+}
+$('#f-hoy').onclick=()=>{rango('hoy');buscar();};
+$('#f-semana').onclick=()=>{rango('semana');buscar();};
+$('#f-mes').onclick=()=>{rango('mes');buscar();};
+$('#f-buscar').onclick=buscar;
+
+let ULTIMA = {regs:[], dias:[]};
+async function buscar(){
+  const de=$('#f-desde').value, ha=$('#f-hasta').value; if(!de||!ha) return;
+  let regs = await DB.consultar(inicioDia(de), finDia(ha));
+  const fe=$('#f-emp').value, ft=$('#f-tienda').value;
+  if(fe) regs=regs.filter(r=>r.empId===fe);
+  if(ft) regs=regs.filter(r=>r.tienda===ft);
+  const grupos={};
+  regs.forEach(r=>{ const k=claveDia(r.ts)+'|'+r.empId; (grupos[k]=grupos[k]||[]).push(r); });
+  const dias = Object.entries(grupos).map(([k,rs])=>{
+    const [dia,empId]=k.split('|');
+    return {dia, empId, nombre:(EMPLEADOS[empId]||{}).nombre||rs[0].nombre, regs:rs, calc:calcularDia(rs.filter(r=>!r.anulado))};
+  }).sort((a,b)=> b.dia.localeCompare(a.dia) || a.nombre.localeCompare(b.nombre,'es'));
+  ULTIMA={regs, dias};
+  pintarTabla();
+}
+function pintarTabla(){
+  const {dias}=ULTIMA;
+  if(!dias.length){ $('#t-res').innerHTML='<tr><td class="sub">No hay fichajes en este periodo.</td></tr>'; $('#t-tot').innerHTML=''; return; }
+  let h='<tr><th>Fecha</th><th>Empleado</th><th>Tramos</th><th class="num">Pausas</th><th class="num">Horas</th><th>Incidencias</th><th></th></tr>';
+  dias.forEach((d,i)=>{
+    const tr=d.calc.tramos.map(([a,b])=>(a?hhmm(a):'¿?')+'–'+(b?hhmm(b):'…')).join(', ');
+    const inc=d.calc.inc.length?`<span class="inc">⚠ ${esc(d.calc.inc.join(' · '))}</span>`:'';
+    h+=`<tr><td>${fechaLarga(d.dia)}</td><td>${esc(d.nombre)}</td><td>${tr}</td><td class="num">${d.calc.pausa?dur(d.calc.pausa):'—'}</td>
+        <td class="num"><b>${dur(d.calc.neto)}</b></td><td>${inc}</td><td><button class="btn peq" data-ver="${i}">Detalle</button></td></tr>
+        <tr class="det oculto" id="det-${i}"><td colspan="7">${detalleHTML(d)}</td></tr>`;
+  });
+  $('#t-res').innerHTML=h;
+  const tot={};
+  dias.forEach(d=>{ tot[d.nombre]=(tot[d.nombre]||0)+d.calc.neto; });
+  $('#t-tot').innerHTML=Object.entries(tot).sort().map(([n,ms])=>`<div><b>${esc(n)}</b>: ${dur(ms)}</div>`).join('');
+}
+function detalleHTML(d){
+  return '<table>'+d.regs.map(r=>{
+    const fl=[r.origen==='admin'?'<span class="flag admin">Añadido por admin</span>':'',
+              r.sinConexion?'<span class="flag off">Fichado sin conexión</span>':'',
+              r.fueraDeLugar?'<span class="flag off">Fuera de su lugar asignado</span>':'',
+              r.margen?`<span class="flag">+${r.margen} min de margen (cuenta desde las ${hhmm(r.ts-r.margen*60000)})</span>`:'',
+              r.tienda?`<span class="flag">${esc(r.tienda)}</span>`:''].join('');
+    const mot = r.motivo?`<div class="inc">Motivo: ${esc(r.motivo)}</div>`:'';
+    const anu = r.anulado?`<div class="inc">Anulado: ${esc(r.anulado.motivo)}</div>`:'';
+    const bts = r.anulado?'':`<button class="btn peq" data-corr="${r.id}">Corregir</button> <button class="btn peq peligro" data-anu="${r.id}">Anular</button>`;
+    return `<tr><td class="${r.anulado?'anulado':''}"><span class="etq ${r.tipo}">${TIPOS[r.tipo]}</span></td>
+      <td class="${r.anulado?'anulado':''}"><b>${hhmm(r.ts)}</b></td><td>${fl}${mot}${anu}</td><td class="num">${bts}</td></tr>`;
+  }).join('')+'</table>';
+}
+$('#t-res').addEventListener('click', e=>{
+  const t=e.target;
+  if(t.dataset.ver!=null) return $('#det-'+t.dataset.ver).classList.toggle('oculto');
+  if(t.dataset.corr) return formRegistro(ULTIMA.regs.find(r=>r.id===t.dataset.corr));
+  if(t.dataset.anu) return anular(ULTIMA.regs.find(r=>r.id===t.dataset.anu));
+});
+
+function formRegistro(original){
+  const ahora=Date.now(), base=original?original.ts:ahora;
+  const d=new Date(base);
+  const m=abrirModal(`<h3>${original?'Corregir fichaje':'Añadir fichaje olvidado'}</h3>
+    <p class="sub">${original?'El fichaje original no se borra: queda anulado y enlazado a este nuevo, con el motivo.':'Queda marcado como añadido por administración, con el motivo.'}</p>
+    <label>Empleado</label><select id="r-emp" ${original?'disabled':''}>${empOrdenados().map(([id,e])=>`<option value="${id}">${esc(e.nombre)}</option>`).join('')}</select>
+    <div class="grid2">
+      <div><label>Tipo</label><select id="r-tipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label>Lugar</label><select id="r-tienda"><option value="">—</option>${opcLugares()}</select></div>
+      <div><label>Fecha</label><input type="date" id="r-fecha" value="${claveDia(base)}"></div>
+      <div><label>Hora</label><input type="time" id="r-hora" value="${pad(d.getHours())}:${pad(d.getMinutes())}"></div>
+    </div>
+    <label>Motivo (obligatorio)</label><textarea id="r-mot" rows="2" placeholder="Ej.: olvidó fichar la salida, confirmado con el trabajador"></textarea>
+    <div class="msg-err" id="r-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`);
+  if(original){ m.el.querySelector('#r-emp').value=original.empId; m.el.querySelector('#r-tipo').value=original.tipo; m.el.querySelector('#r-tienda').value=original.tienda||''; }
+  else { const fe=$('#f-emp').value; if(fe) m.el.querySelector('#r-emp').value=fe; m.el.querySelector('#r-tienda').value=tiendaTablet; }
+  m.el.addEventListener('click', async e=>{
+    if(e.target.dataset.x!=null) return m.cerrar();
+    if(e.target.dataset.ok==null) return;
+    const g=s=>m.el.querySelector(s).value;
+    const mot=g('#r-mot').trim(); if(!mot) return m.el.querySelector('#r-err').textContent='Indica el motivo';
+    const [hh,mm]=g('#r-hora').split(':').map(Number);
+    const ts=inicioDia(g('#r-fecha'))+hh*3600000+mm*60000;
+    if(ts>Date.now()) return m.el.querySelector('#r-err').textContent='No se puede registrar una hora futura';
+    const empId=g('#r-emp'), emp=EMPLEADOS[empId];
+    const nuevo={empId, nombre:emp?emp.nombre:(original&&original.nombre), tipo:g('#r-tipo'), tienda:g('#r-tienda'), ts, origen:'admin', motivo:mot, registradoEn:Date.now()};
+    if(original){ nuevo.corrige=original.id; if(original.margen && nuevo.tipo==='entrada') nuevo.margen=original.margen; }
+    const k=await DB.nuevoRegistro(nuevo);
+    if(original){
+      await DB.actualizarRegistro(original.id,{anulado:{motivo:'Corregido: '+mot, fecha:Date.now(), sustituidoPor:k}});
+      await DB.auditar({accion:'corregir', registro:original.id, nuevo:k, antes:{tipo:original.tipo,ts:original.ts}, despues:{tipo:nuevo.tipo,ts}, motivo:mot});
+    } else await DB.auditar({accion:'añadir', registro:k, despues:{tipo:nuevo.tipo,ts,empId}, motivo:mot});
+    m.cerrar(); toast('Guardado', true); buscar();
+  });
+}
+$('#f-nuevo').onclick=()=>{ if(!Object.keys(EMPLEADOS).length) return toast('Primero da de alta empleados'); formRegistro(null); };
+
+function anular(r){
+  const m=abrirModal(`<h3>Anular fichaje</h3><p class="sub">${esc(r.nombre)} · ${TIPOS[r.tipo]} · ${fechaLarga(claveDia(r.ts))} ${hhmm(r.ts)}<br>No se borra: queda tachado con el motivo.</p>
+    <label>Motivo (obligatorio)</label><textarea id="a-mot" rows="2" placeholder="Ej.: fichaje duplicado"></textarea><div class="msg-err" id="a-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn peligro" data-ok>Anular</button></div>`);
+  m.el.addEventListener('click', async e=>{
+    if(e.target.dataset.x!=null) return m.cerrar();
+    if(e.target.dataset.ok==null) return;
+    const mot=m.el.querySelector('#a-mot').value.trim(); if(!mot) return m.el.querySelector('#a-err').textContent='Indica el motivo';
+    await DB.actualizarRegistro(r.id,{anulado:{motivo:mot, fecha:Date.now()}});
+    await DB.auditar({accion:'anular', registro:r.id, antes:{tipo:r.tipo,ts:r.ts}, motivo:mot});
+    m.cerrar(); toast('Fichaje anulado'); buscar();
+  });
+}
+
+/* Vacaciones del empleado: solo lectura */
+async function misVacaciones(id){
+  const emp=EMPLEADOS[id];
+  let [perfil, aus, sols] = await Promise.all([DB.leerPerfil(id), DB.leerAusenciasDe(id), DB.leerSolicitudesDe(id)]);
+  let year=new Date().getFullYear();
+  const m=abrirModal(`<h3>Vacaciones de ${esc(emp.nombre.split(' ')[0])}</h3>
+    <div class="res-barra" style="margin:8px 0 4px"><div class="nav"><button class="btn peq" data-y="-1">◀</button><strong class="mv-y" style="min-width:0"></strong><button class="btn peq" data-y="1">▶</button></div></div>
+    <div class="mv-cuerpo"></div>
+    <div class="mv-sols"></div>
+    <div class="pedir">
+      <strong>Pedir vacaciones</strong>
+      <div class="aus-nueva" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)">
+        <div><label>Tipo</label><select id="pv-tipo"><option value="vacaciones">Vacaciones</option><option value="asuntos">Asuntos propios</option><option value="permiso">Permiso</option></select></div>
+        <div><label>Desde</label><input type="date" id="pv-desde"></div>
+        <div><label>Hasta</label><input type="date" id="pv-hasta"></div>
+      </div>
+      <div id="pv-prev" class="sub" style="margin:6px 0 0;font-size:.85rem"></div>
+      <input id="pv-nota" placeholder="Comentario (opcional)" style="margin-top:8px">
+      <div class="msg-err" id="pv-err" style="text-align:left"></div>
+      <div class="fila-btn" style="margin-top:8px"><button class="btn pri" data-pedir>Enviar solicitud</button></div>
+    </div>
+    <p class="sub" style="font-size:.8rem;margin:12px 0 0">Las vacaciones solo cuentan cuando administración aprueba la solicitud. Tú no puedes modificar las ya aprobadas.</p>
+    <div class="fila-btn"><button class="btn" data-x>Cerrar</button></div>`, true);
+  m.autoCerrar(120);
+  const previa=()=>{ const de=m.el.querySelector('#pv-desde').value, ha=m.el.querySelector('#pv-hasta').value||de, out=m.el.querySelector('#pv-prev');
+    if(!de||ha<de){ out.innerHTML=''; return; }
+    const tipo=m.el.querySelector('#pv-tipo').value, yy=+de.slice(0,4);
+    let txt='Serían <b>'+textoDias(perfil,{desde:de,hasta:ha})+'</b>';
+    if(tipo==='vacaciones'){ const q=vacCorresponden(perfil,yy)-vacacionesUsadas(perfil,aus,yy)-diasQueCuentan(perfil,de,ha,yy); txt+=` · te quedarían <b>${q}</b> días en ${yy}`+(q<0?' <span style="color:var(--rojo)">(te pasas)</span>':''); }
+    out.innerHTML=txt; };
+  ['#pv-desde','#pv-hasta','#pv-tipo'].forEach(x=>m.el.querySelector(x).addEventListener('change',previa));
+  const pintarSols=()=>{
+    const l=Object.entries(sols||{}).filter(([,a])=>a.estado==='pendiente' || a.hasta>=hoyStr() || (a.respondida||0)>Date.now()-30*864e5).sort((a,b)=>b[1].creada-a[1].creada);
+    m.el.querySelector('.mv-sols').innerHTML = l.length ? '<strong style="display:block;margin-top:14px">Mis solicitudes</strong><ul class="aus-lista">'+l.map(([k,a])=>
+      `<li><span class="tipo"><span class="etq ${a.estado}">${ESTADOS_SOL[a.estado]}</span></span><span style="flex:1">${TIPOS_AUS[a.tipo]} · ${fCortaISO(a.desde)}${a.hasta!==a.desde?' → '+fCortaISO(a.hasta):''}<div class="sub" style="margin:0;font-size:.8rem">${textoDias(perfil,a)}${a.respuesta?' · Respuesta: '+esc(a.respuesta):''}</div></span>${a.estado==='pendiente'?`<button class="btn peq" data-cancelar="${k}">Cancelar</button>`:''}</li>`).join('')+'</ul>' : '';
+  };
+  pintarSols();
+  m.autoCerrar(60);
+  const fd=s=>new Date(inicioDia(s)).toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
+  const pintar=()=>{
+    m.el.querySelector('.mv-y').textContent=year;
+    const u=vacacionesUsadas(perfil,aus,year), t=vacCorresponden(perfil,year), hoy=hoyStr();
+    const l=Object.values(aus||{}).filter(a=>a.desde.slice(0,4)<=String(year) && a.hasta.slice(0,4)>=String(year)).sort((a,b)=>a.desde.localeCompare(b.desde));
+    const filas = l.length ? l.map(a=>{
+      const est = a.hasta<hoy ? 'Disfrutadas' : a.desde>hoy ? 'Próximas' : 'Ahora';
+      return `<li><span class="tipo"><span class="etq ${a.tipo}">${TIPOS_AUS[a.tipo]}</span></span><span style="flex:1">${fd(a.desde)}${a.hasta!==a.desde?' → '+fd(a.hasta):''}<div class="sub" style="margin:0;font-size:.8rem">${textoDias(perfil,a)} · ${est}${a.nota?' · '+esc(a.nota):''}</div></span></li>`; }).join('')
+      : '<li class="sub">No hay vacaciones ni ausencias apuntadas este año.</li>';
+    m.el.querySelector('.mv-cuerpo').innerHTML=`<div class="ficha-res"><div>Te corresponden ${year}<b>${t} días</b></div><div>Apuntadas<b>${u} días</b></div><div>Te quedan<b>${t-u} días</b></div></div>
+      <p class="sub" style="font-size:.78rem;margin:4px 0 0">Días ${perfil.vacComputo==='laborables'?'laborables':'naturales'}. ${esc(explicaVac(perfil,year))}.</p>
+      <ul class="aus-lista">${filas}</ul>`;
+  };
+  m.el.addEventListener('click',async e=>{
+    m.autoCerrar(120);
+    if(e.target.dataset.x!=null) return m.cerrar();
+    if(e.target.dataset.y){ year+=+e.target.dataset.y; pintar(); }
+    if(e.target.dataset.cancelar){
+      if(!await confirmar('Cancelar tu solicitud.','Sí, cancelar')) return;
+      await DB.actualizarSolicitud(id,e.target.dataset.cancelar,{estado:'cancelada', respondida:Date.now()}); sols[e.target.dataset.cancelar].estado='cancelada'; pintarSols();
+    }
+    if(e.target.dataset.pedir!=null){
+      const g=x=>m.el.querySelector(x), err=g('#pv-err'), de=g('#pv-desde').value, ha=g('#pv-hasta').value||de;
+      if(!de) return err.textContent='Elige la fecha de inicio';
+      if(ha<de) return err.textContent='La fecha final es anterior a la inicial';
+      if(de<hoyStr()) return err.textContent='No se pueden pedir fechas pasadas';
+      if(Object.values(aus||{}).some(a=>a.desde<=ha && a.hasta>=de)) return err.textContent='Ya tienes vacaciones o ausencias apuntadas en esas fechas';
+      if(Object.values(sols||{}).some(a=>a.estado==='pendiente' && a.desde<=ha && a.hasta>=de)) return err.textContent='Ya tienes una solicitud pendiente en esas fechas';
+      if(!diasQueCuentan(perfil,de,ha)) return err.textContent='En esas fechas no tienes ningún día de trabajo';
+      const o={tipo:g('#pv-tipo').value, desde:de, hasta:ha, estado:'pendiente', creada:Date.now(), nombre:emp.nombre}; const nota=g('#pv-nota').value.trim(); if(nota) o.nota=nota;
+      e.target.disabled=true;
+      const k=await DB.guardarSolicitud(id,o); sols=sols||{}; sols[k]=o;
+      await DB.auditar({accion:'solicitud de vacaciones', empId:id, ...o});
+      g('#pv-desde').value=g('#pv-hasta').value=g('#pv-nota').value=''; g('#pv-prev').innerHTML=''; err.textContent=''; e.target.disabled=false;
+      pintarSols(); toast('Solicitud enviada. Te avisaremos aquí cuando la revisen.', true);
+    }
+  });
+  pintar();
+}
+
+/* Resumen personal del empleado (solo sus horas, desde el quiosco tras meter su PIN) */
+function misHoras(id){
+  const emp=EMPLEADOS[id]; let modo='semana', ref=new Date();
+  const m=abrirModal(`<h3>Horas de ${esc(emp.nombre.split(' ')[0])}</h3>
+    <div class="res-barra" style="margin:10px 0">
+      <div class="seg"><button data-modo="semana" class="act">Semana</button><button data-modo="mes">Mes</button></div>
+      <div class="nav"><button class="btn peq" data-nav="-1">◀</button><strong class="mh-tit" style="min-width:0"></strong><button class="btn peq" data-nav="1">▶</button></div>
+    </div>
+    <div class="mh-cuerpo"></div>
+    <div class="fila-btn"><button class="btn pri" data-x>Cerrar</button></div>`, true);
+  m.autoCerrar(60);
+  const fCorta = d => d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+  let perfil=null, aus=null;
+  async function pintar(){
+    if(!perfil){ [perfil, aus] = await Promise.all([DB.leerPerfil(id), DB.leerAusenciasDe(id)]); }
+    const am=mapaAusencias(aus);
+    let ini, fin, tit;
+    if(modo==='semana'){ ini=lunesDe(ref); fin=masDias(ini,6); tit=fCorta(ini)+' – '+fCorta(fin); }
+    else { ini=new Date(ref.getFullYear(),ref.getMonth(),1); fin=new Date(ref.getFullYear(),ref.getMonth()+1,0);
+      tit=ini.toLocaleDateString('es-ES',{month:'long',year:'numeric'}); tit=tit[0].toUpperCase()+tit.slice(1); }
+    m.el.querySelector('.mh-tit').textContent=tit;
+    const regs=(await DB.consultar(ini.getTime(), finDia(claveDia(fin.getTime())))).filter(r=>r.empId===id && !r.anulado);
+    const porDia={}; regs.forEach(r=>{ const k=claveDia(r.ts); (porDia[k]=porDia[k]||[]).push(r); });
+    let total=0, nd=0, filas='';
+    if(modo==='semana'){
+      for(let i=0;i<7;i++){ const d=masDias(ini,i), k=claveDia(d.getTime()), c=calcularDia(porDia[k]||[]);
+        total+=c.neto; if(c.neto) nd++;
+        const tr=c.tramos.map(([a,b])=>(a?hhmm(a):'¿?')+'–'+(b?hhmm(b):'…')).join(', ');
+        const au=am.get(k), fe=festivosSet().has(k);
+        const vacio = au ? `<span class="etq ${au}">${TIPOS_AUS[au]}</span>` : fe ? '<span class="sub" style="margin:0">Festivo</span>' : '<span style="color:#c3cad3">—</span>';
+        filas+=`<tr><td>${d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric'})}</td><td>${tr||vacio}${c.inc.length?' <span class="w">⚠</span>':''}</td><td class="num">${c.neto?dur(c.neto):''}</td></tr>`; }
+    } else {
+      let a=new Date(ini), n=1;
+      while(a<=fin){ let b=masDias(lunesDe(a),6); if(b>fin) b=fin; let ms=0, inc=false;
+        Object.entries(porDia).forEach(([k,rs])=>{ if(k>=claveDia(a.getTime()) && k<=claveDia(b.getTime())){ const c=calcularDia(rs); ms+=c.neto; if(c.neto) nd++; if(c.inc.length) inc=true; } });
+        total+=ms;
+        filas+=`<tr><td>Semana ${n}</td><td>${a.getDate()}–${b.getDate()} ${a.toLocaleDateString('es-ES',{month:'short'})}${inc?' <span class="w">⚠</span>':''}</td><td class="num">${ms?dur(ms):'—'}</td></tr>`;
+        a=masDias(b,1); n++; }
+    }
+    m.el.querySelector('.mh-cuerpo').innerHTML=`<table class="t-resumen">${filas}
+      <tr class="pie-t"><td>Total</td><td>${nd} día${nd===1?'':'s'} trabajado${nd===1?'':'s'}</td><td class="num">${dur(total)}</td></tr></table>
+      ${(()=>{ const pv=previstas(perfil, am, claveDia(ini.getTime()), claveDia(fin.getTime()), porDia[hoyStr()]?calcularDia(porDia[hoyStr()]).neto:0); const y=new Date().getFullYear(), u=vacacionesUsadas(perfil,aus,y), t=vacCorresponden(perfil,y);
+        return `<div class="ficha-res" style="margin-top:12px">${pv!=null?`<div>Previstas${claveDia(fin.getTime())>=hoyStr()&&claveDia(ini.getTime())<=hoyStr()?' (hasta ahora)':''}<b>${dur(pv)}</b></div><div>Diferencia<b>${difHTML(total,pv)}</b></div>`:''}<div>Vacaciones ${y}<b>quedan ${t-u} de ${t}</b></div></div>`; })()}
+      <p class="sub" style="font-size:.78rem;margin:8px 0 0">⚠ = falta algún fichaje ese día. Si ves un error, avisa a administración para corregirlo.</p>`;
+  }
+  m.el.addEventListener('click', e=>{
+    m.autoCerrar(60);
+    if(e.target.dataset.x!=null) return m.cerrar();
+    if(e.target.dataset.modo){ modo=e.target.dataset.modo; m.el.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('act',x===e.target)); ref=new Date(); pintar(); }
+    if(e.target.dataset.nav){ const n=+e.target.dataset.nav; ref = modo==='semana'?masDias(ref,7*n):new Date(ref.getFullYear(),ref.getMonth()+n,1); pintar(); }
+  });
+  pintar();
+}
+
+/* Resumen semanal / mensual */
+let resModo='semana', resRef=new Date();
+const lunesDe = d => { const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; };
+const masDias = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  resModo=b.dataset.modo; document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('act',x===b)); pintarResumen();
+});
+$('#r-ant').onclick=()=>{ resRef = resModo==='semana'?masDias(resRef,-7):new Date(resRef.getFullYear(),resRef.getMonth()-1,1); pintarResumen(); };
+$('#r-sig').onclick=()=>{ resRef = resModo==='semana'?masDias(resRef,7):new Date(resRef.getFullYear(),resRef.getMonth()+1,1); pintarResumen(); };
+$('#r-hoy').onclick=()=>{ resRef=new Date(); pintarResumen(); };
+$('#r-lugar').onchange=()=>pintarResumen();
+
+let RES_COLS=[];
+async function pintarResumen(){
+  const cols=[]; let tit;
+  const fCorta = d => d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+  if(resModo==='semana'){
+    const l=lunesDe(resRef);
+    for(let i=0;i<7;i++){ const d=masDias(l,i), k=claveDia(d.getTime());
+      cols.push({de:k, ha:k, tit:d.toLocaleDateString('es-ES',{weekday:'short'}), sub:d.getDate(), hoy:k===hoyStr()}); }
+    tit = fCorta(l)+' – '+fCorta(masDias(l,6))+' '+masDias(l,6).getFullYear();
+  } else {
+    const y=resRef.getFullYear(), m=resRef.getMonth(), ult=new Date(y,m+1,0);
+    let ini=new Date(y,m,1), n=1;
+    while(ini<=ult){ let fin=masDias(lunesDe(ini),6); if(fin>ult) fin=ult;
+      cols.push({de:claveDia(ini.getTime()), ha:claveDia(fin.getTime()), tit:'Sem '+n, sub:ini.getDate()+(ini.getDate()!==fin.getDate()?'–'+fin.getDate():'')});
+      ini=masDias(fin,1); n++; }
+    const t=new Date(y,m,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'}); tit=t[0].toUpperCase()+t.slice(1);
+  }
+  RES_COLS=cols; $('#r-tit').textContent=tit;
+  const regs=(await DB.consultar(inicioDia(cols[0].de), finDia(cols[cols.length-1].ha))).filter(r=>!r.anulado);
+  const porEmp={};
+  regs.forEach(r=>{ const k=claveDia(r.ts); ((porEmp[r.empId]=porEmp[r.empId]||{})[k]=porEmp[r.empId][k]||[]).push(r); });
+  const lug=$('#r-lugar').value;
+  const emps=empOrdenados().filter(([id,e])=>(e.activo!==false || porEmp[id]) && (!lug || lugaresDe(e).includes(lug)));
+  if(!emps.length){ $('#t-resumen').innerHTML='<tr><td class="sub">No hay empleados.</td></tr>'; return; }
+  const totCol=cols.map(()=>0); let totGen=0;
+  const actual = cols[0].de<=hoyStr() && hoyStr()<=cols[cols.length-1].ha;
+  const fest=festivosSet();
+  let h='<tr><th>Empleado</th>'+cols.map(c=>`<th class="${c.hoy?'hoy':''}">${c.tit}<small>${c.sub}${resModo==='semana'&&fest.has(c.de)?' · festivo':''}</small></th>`).join('')
+       +'<th class="tot">Hechas</th><th>Previstas'+(actual?'<small>hasta ahora</small>':'')+'</th><th>Diferencia</th>'+(resModo==='mes'?'<th>Días</th><th>Ausencias</th>':'')+'</tr>';
+  let totPrev=0, hayPrev=false;
+  emps.forEach(([id,e])=>{
+    const dias=porEmp[id]||{}, p=PERFILES[id]||{}, am=mapaAusencias(AUSENCIAS[id]); let tot=0, nd=0, nAus=0;
+    h+=`<tr><td>${esc(e.nombre)}</td>`;
+    cols.forEach((c,i)=>{
+      let ms=0, inc=false;
+      Object.entries(dias).forEach(([k,rs])=>{ if(k>=c.de && k<=c.ha){ const cal=calcularDia(rs); ms+=cal.neto; if(cal.inc.length) inc=true; if(cal.neto>0) nd++; } });
+      for(let d=inicioDia(c.de); d<=inicioDia(c.ha); d=sumarDia(d)) if(am.has(claveDia(d))) nAus++;
+      tot+=ms; totCol[i]+=ms;
+      const ausDia = c.de===c.ha ? am.get(c.de) : null;
+      h+= ms||inc ? `<td class="c" data-e="${id}" data-c="${i}">${ms?dur(ms):'0h'}${inc?' <span class="w">⚠</span>':''}</td>`
+        : ausDia ? `<td class="aus" title="${TIPOS_AUS[ausDia]}">${CORTO_AUS[ausDia]}</td>` : `<td class="vac">—</td>`;
+    });
+    totGen+=tot;
+    const pv=previstas(p, am, cols[0].de, cols[cols.length-1].ha, dias[hoyStr()]?calcularDia(dias[hoyStr()]).neto:0); if(pv!=null){ totPrev+=pv; hayPrev=true; }
+    h+=`<td class="tot">${tot?dur(tot):'—'}</td><td>${pv!=null?dur(pv):'<span class="sub" style="font-size:.8rem">sin contrato</span>'}</td><td>${difHTML(tot,pv)}</td>`
+      +(resModo==='mes'?`<td>${nd||'—'}</td><td>${nAus?nAus+' d':'—'}</td>`:'')+'</tr>';
+  });
+  h+='<tr class="pie-t"><td>Total</td>'+totCol.map(ms=>`<td>${ms?dur(ms):'—'}</td>`).join('')+`<td class="tot">${dur(totGen)}</td><td>${hayPrev?dur(totPrev):'—'}</td><td></td>`+(resModo==='mes'?'<td></td><td></td>':'')+'</tr>';
+  $('#t-resumen').innerHTML=h;
+}
+$('#t-resumen').addEventListener('click', e=>{
+  const td=e.target.closest('td.c'); if(!td) return;
+  const c=RES_COLS[+td.dataset.c];
+  $('#f-desde').value=c.de; $('#f-hasta').value=c.ha; $('#f-emp').value=td.dataset.e; $('#f-tienda').value='';
+  document.querySelector('.tabs button[data-tab="registros"]').click();
+  buscar().then(()=>{ const b=document.querySelector('[data-ver="0"]'); if(b && c.de===c.ha) b.click(); });
+});
+
+/* CSV (separador ; para Excel en español) */
+function descargarCSV(nombre, filas){
+  const csv='﻿'+filas.map(f=>f.map(c=>{ const s=String(c??''); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=nombre; document.body.appendChild(a); a.click(); a.remove();
+}
+$('#f-csv-res').onclick=()=>{
+  const f=[['Fecha','Empleado','Tramos','Pausas (h)','Horas trabajadas (h)','Incidencias']];
+  ULTIMA.dias.slice().reverse().forEach(d=>f.push([d.dia,d.nombre,d.calc.tramos.map(([a,b])=>(a?hhmm(a):'?')+'-'+(b?hhmm(b):'?')).join(' | '),horasDec(d.calc.pausa),horasDec(d.calc.neto),d.calc.inc.join(' | ')]));
+  descargarCSV(`fichaje_resumen_${$('#f-desde').value}_${$('#f-hasta').value}.csv`, f);
+};
+$('#f-csv-det').onclick=()=>{
+  const f=[['Fecha','Hora','Empleado','Tipo','Tienda','Origen','Estado','Motivo','Sin conexión']];
+  ULTIMA.regs.forEach(r=>f.push([claveDia(r.ts),hhmm(r.ts),r.nombre,TIPOS[r.tipo],r.tienda,r.origen,r.anulado?'Anulado':'Válido',r.anulado?r.anulado.motivo:(r.motivo||''),r.sinConexion?'Sí':'']));
+  descargarCSV(`fichaje_detalle_${$('#f-desde').value}_${$('#f-hasta').value}.csv`, f);
+};
+
+/* Informe mensual imprimible */
+$('#i-gen').onclick=async ()=>{
+  const [y,mo]=$('#i-mes').value.split('-').map(Number); if(!y) return;
+  const ini=new Date(y,mo-1,1).getTime(), fin=new Date(y,mo,0,23,59,59,999).getTime(), nd=new Date(y,mo,0).getDate();
+  const regs=(await DB.consultar(ini,fin)).filter(r=>!r.anulado);
+  const sel=$('#i-emp').value;
+  let ids = sel ? [sel] : empOrdenados().filter(([id,e])=>e.activo!==false || regs.some(r=>r.empId===id)).map(([id])=>id);
+  if(!ids.length) return toast('No hay empleados');
+  const nomMes=new Date(y,mo-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+  let html='';
+  ids.forEach(id=>{
+    const e=EMPLEADOS[id]||{nombre:'?'}; let total=0, filas='';
+    for(let dd=1; dd<=nd; dd++){
+      const k=y+'-'+pad(mo)+'-'+pad(dd);
+      const rs=regs.filter(r=>r.empId===id && claveDia(r.ts)===k);
+      const c=calcularDia(rs); total+=c.neto;
+      const fecha=new Date(y,mo-1,dd).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit'});
+      const tr=c.tramos.map(([a,b])=>(a?hhmm(a):'¿?')+' – '+(b?hhmm(b):'¿?')).join('<br>');
+      filas+=`<tr><td>${fecha}</td><td>${tr}</td><td>${c.pausa?dur(c.pausa):''}</td><td style="text-align:right">${c.neto?dur(c.neto):''}</td><td>${esc(c.inc.join('; '))}</td></tr>`;
+    }
+    html+=`<div class="hoja"><h1>Registro diario de jornada — ${esc(nomMes)}</h1>
+      <div>Empresa: <b>Colchonería Blázquez S.L.</b> &nbsp;·&nbsp; Trabajador/a: <b>${esc(e.nombre)}</b>${lugaresDe(e).length?' &nbsp;·&nbsp; Centro de trabajo: '+esc(lugaresDe(e).join(', ')):''}</div><br>
+      <table style="width:100%;border-collapse:collapse"><tr><th>Día</th><th>Entrada – Salida</th><th>Pausas</th><th>Horas</th><th>Observaciones</th></tr>${filas}
+      <tr><td colspan="3"><b>Total mes</b></td><td style="text-align:right"><b>${dur(total)}</b></td><td></td></tr></table>
+      ${regs.some(r=>r.empId===id && r.margen) ? `<p style="font-size:9.5px;color:#555">Las horas incluyen un margen de entrada de ${[...new Set(regs.filter(r=>r.empId===id&&r.margen).map(r=>r.margen))].join('/')} min por fichaje de entrada (tiempo de encendido del dispositivo). Las horas de entrada mostradas son las fichadas.</p>` : ''}
+      <p style="font-size:9.5px;color:#555">Registro de jornada conforme al art. 34.9 del Estatuto de los Trabajadores. Los registros se conservan durante cuatro años.</p>
+      <div class="firmas"><div>Firma de la empresa</div><div>Firma del trabajador/a</div></div></div>`;
+  });
+  $('#print').innerHTML=html; document.body.classList.add('imprimiendo');
+  setTimeout(()=>{ window.print(); document.body.classList.remove('imprimiendo'); }, 100);
+};
+
+/* Empleados y perfiles */
+const CONTRATOS=['Indefinido','Temporal','Fijo discontinuo','Prácticas / formación','Otro'];
+const CAMPOS_PERFIL=['nombreCompleto','dni','nss','nacimiento','telefono','email','direccion','puesto','alta','bajaContrato','contrato','horasSemana','horario','vacAnuales','vacComputo','emergNombre','emergTel','notas'];
+function pintarEmpleados(){
+  const l=empOrdenados();
+  $('#t-emp').innerHTML = l.length ? '<tr><th>Nombre</th><th>Puesto</th><th>Lugar de trabajo</th><th>Teléfono</th><th class="num">Jornada</th><th class="num">Vacaciones</th><th>Estado</th><th></th></tr>'+l.map(([id,e])=>{
+    const p=PERFILES[id]||{};
+    return `<tr><td><b>${esc(e.nombre)}</b>${p.nombreCompleto?`<div class="sub" style="margin:0;font-size:.8rem">${esc(p.nombreCompleto)}</div>`:''}</td>
+     <td>${esc(p.puesto||'—')}</td><td>${esc(lugaresDe(e).join(', ')||'—')}</td>
+     <td>${p.telefono?`<a href="tel:${esc(p.telefono)}">${esc(p.telefono)}</a>`:'—'}</td>
+     <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}</td>
+     <td class="num">${(()=>{ const y=new Date().getFullYear(), u=vacacionesUsadas(p,AUSENCIAS[id],y), t=vacCorresponden(p,y); return `quedan <b>${t-u}</b> de ${t}`; })()}</td>
+     <td>${e.activo===false?'<span class="flag">Baja</span>':'<span class="flag admin">Activo</span>'}</td>
+     <td class="num"><button class="btn peq" data-ed="${id}">Ver perfil</button></td></tr>`;}).join('') : '<tr><td class="sub">Aún no hay empleados.</td></tr>';
+}
+$('#t-emp').addEventListener('click', e=>{ if(e.target.dataset.ed) formEmpleado(e.target.dataset.ed); });
+$('#e-nuevo').onclick=()=>altaRapida();
+
+async function horasPeriodo(id, ini, fin){
+  const regs=(await DB.consultar(ini, fin)).filter(r=>r.empId===id && !r.anulado);
+  const pd={}; regs.forEach(r=>{ const k=claveDia(r.ts); (pd[k]=pd[k]||[]).push(r); });
+  return Object.values(pd).reduce((t,rs)=>t+calcularDia(rs).neto,0);
+}
+
+function formEmpleado(id){
+  const e = id ? EMPLEADOS[id] : {nombre:'', tienda:tiendaTablet, lugares:tiendaTablet?[tiendaTablet]:[], activo:true};
+  const p = id ? (PERFILES[id]||{}) : {};
+  const v = k => esc(p[k]||'');
+  const inp = (k,lab,extra='') => `<div><label>${lab}</label><input id="pf-${k}" value="${v(k)}" ${extra}></div>`;
+  const m=abrirModal(`<h3>${id?esc(e.nombre):'Nuevo empleado'}</h3>
+    ${id?'<div class="ficha-res" id="pf-horas"><div>Cargando horas…</div></div>':'<p class="sub">Rellena al menos el nombre y el PIN. El resto puedes completarlo más tarde.</p>'}
+
+    <div class="seccion">Fichaje</div>
+    <div class="grid2">
+      <div><label>Nombre que sale en la pantalla</label><input id="em-nom" value="${esc(e.nombre)}"></div>
+      <div><label>PIN</label>${id
+        ? `<div style="display:flex;gap:8px;align-items:center"><span class="flag ${e.pinProvisional?'off':'admin'}" style="margin:0">${e.pinProvisional?'Provisional (aún no lo ha cambiado)':'Personal (solo lo sabe él/ella)'}</span><button class="btn peq" data-pin0>Volver a poner 0000</button></div><input id="em-pin" type="hidden">`
+        : `<input id="em-pin" value="${PIN_INICIAL}" inputmode="numeric" maxlength="4"><div class="sub" style="margin:2px 0 0;font-size:.78rem">Provisional: lo cambiará al entrar</div>`}</div>
+    </div>
+    <label>Lugar de trabajo <span style="font-weight:400">(puede tener varios; el primero marcado es el principal)</span></label>
+    <div class="chips" id="em-lug">${LUGARES().map(t=>`<label class="chip"><input type="checkbox" value="${esc(t)}" ${lugaresDe(e).includes(t)?'checked':''}><span>${esc(t)}</span></label>`).join('')}</div>
+    <div class="grid2">
+      <div><label>Margen de entrada (minutos)</label><input id="em-margen" type="number" min="0" max="30" step="1" value="${Number(e.margenEntrada)||''}" placeholder="0"></div>
+      <div class="check" style="margin-top:34px"><input type="checkbox" id="em-act" ${e.activo!==false?'checked':''}><span>Activo</span></div>
+    </div>
+    <p class="sub" style="font-size:.8rem;margin:4px 0 0">Minutos que se le suman en cada entrada por lo que tarda en encender el ordenador o el móvil. Ej.: con 5 min, si ficha a las 16:30 cuenta desde las 16:25. Se aplica a los fichajes que haga a partir de ahora.</p>
+
+    <div class="seccion">Datos personales</div>
+    <div class="grid2">
+      ${inp('nombreCompleto','Nombre y apellidos')}
+      ${inp('dni','DNI / NIE')}
+      ${inp('nss','Nº afiliación Seguridad Social')}
+      ${inp('nacimiento','Fecha de nacimiento','type="date"')}
+      ${inp('telefono','Teléfono','type="tel"')}
+      ${inp('email','Email','type="email"')}
+    </div>
+    <label>Dirección</label><input id="pf-direccion" value="${v('direccion')}">
+
+    <div class="seccion">Datos laborales</div>
+    <div class="grid2">
+      ${inp('puesto','Puesto','placeholder="Dependienta, repartidor…"')}
+      ${inp('alta','Fecha de alta','type="date"')}
+      <div><label>Tipo de contrato</label><select id="pf-contrato"><option value="">—</option>${CONTRATOS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+      ${inp('horasSemana','Horas semanales de contrato','type="number" min="0" max="60" step="0.5"')}
+      ${inp('bajaContrato','Fin de contrato (si es temporal)','type="date"')}
+    </div>
+    <label>Días que trabaja <span style="font-weight:400">(para repartir las horas de contrato)</span></label>
+    <div class="chips" id="pf-dias">${DIAS_SEM.map(([n,l])=>`<label class="chip"><input type="checkbox" value="${n}" ${diasTrabajo(p).includes(n)?'checked':''}><span>${l}</span></label>`).join('')}</div>
+    <label>Horario habitual</label><input id="pf-horario" value="${v('horario')}" placeholder="L-V 10:00-14:00 y 17:00-20:30 · S 10:00-14:00">
+    <div class="grid2">
+      ${inp('vacAnuales','Vacaciones por año completo trabajado','type="number" min="0" max="60" placeholder="30"')}
+      <div><label>Se cuentan como</label><select id="pf-vacComputo"><option value="naturales">Días naturales</option><option value="laborables">Días laborables</option></select></div>
+    </div>
+
+    ${id?`<div class="seccion">Vacaciones y ausencias</div>
+    <div id="pf-vac-res" class="ficha-res"></div>
+    <ul class="aus-lista" id="pf-aus"></ul>
+    <div class="aus-nueva">
+      <div><label>Tipo</label><select id="au-tipo">${Object.entries(TIPOS_AUS).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select></div>
+      <div><label>Desde</label><input type="date" id="au-desde"></div>
+      <div><label>Hasta</label><input type="date" id="au-hasta"></div>
+      <div><button class="btn pri" data-aus-add>Añadir</button></div>
+    </div>
+    <div id="au-prev" class="sub" style="margin:6px 0 0;font-size:.85rem"></div>
+    <input id="au-nota" placeholder="Nota (opcional)" style="margin-top:8px">
+    <div class="msg-err" id="au-err"></div>`:''}
+
+    <div class="seccion">Contacto de emergencia</div>
+    <div class="grid2">${inp('emergNombre','Nombre')}${inp('emergTel','Teléfono','type="tel"')}</div>
+
+    <div class="seccion">Notas</div>
+    <textarea id="pf-notas" rows="3" placeholder="Vacaciones pendientes, tallas de uniforme, formación…">${v('notas')}</textarea>
+
+    <div class="msg-err" id="em-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`, true);
+  m.el.querySelector('#pf-contrato').value=p.contrato||'';
+  m.el.querySelector('#pf-vacComputo').value=p.vacComputo||'naturales';
+  const perfilVivo = () => ({...p, vacComputo:m.el.querySelector('#pf-vacComputo').value, vacAnuales:m.el.querySelector('#pf-vacAnuales').value||p.vacAnuales,
+      alta:m.el.querySelector('#pf-alta').value, bajaContrato:m.el.querySelector('#pf-bajaContrato').value,
+      diasSemana:[...m.el.querySelectorAll('#pf-dias input:checked')].map(x=>+x.value)});
+  const previaAus = () => {
+    if(!id) return; const de=m.el.querySelector('#au-desde').value, ha=m.el.querySelector('#au-hasta').value||de, out=m.el.querySelector('#au-prev');
+    out.innerHTML = de && ha>=de ? 'Contará como <b>'+textoDias(perfilVivo(),{desde:de,hasta:ha})+'</b>' : '';
+  };
+  const pintarAus = () => {
+    if(!id) return;
+    const pv=perfilVivo(); const p_=pv;
+    const aus=AUSENCIAS[id]||{}, year=new Date().getFullYear(), usadas=vacacionesUsadas(pv,aus,year), tot=vacCorresponden(pv,year);
+    m.el.querySelector('#pf-vac-res').innerHTML=`<div>Le corresponden ${year}<b>${tot} días</b></div><div>Apuntadas<b>${usadas} días</b></div><div>Le quedan<b>${tot-usadas} días</b></div><div style="flex-basis:100%;background:none;padding:0;color:var(--gris);font-size:.8rem">${esc(explicaVac(pv,year))} · Días ${pv.vacComputo==='laborables'?'laborables':'naturales'}</div>`;
+    const l=Object.entries(aus).sort((a,b)=>b[1].desde.localeCompare(a[1].desde));
+    const fd=s=>new Date(inicioDia(s)).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+    m.el.querySelector('#pf-aus').innerHTML = l.length ? l.map(([k,a])=>{
+      return `<li><span class="tipo"><span class="etq ${a.tipo}">${TIPOS_AUS[a.tipo]}</span></span><span style="flex:1">${fd(a.desde)}${a.hasta!==a.desde?' → '+fd(a.hasta):''} · ${textoDias(pv,a)}${a.nota?`<div class="sub" style="margin:0;font-size:.8rem">${esc(a.nota)}</div>`:''}</span><button class="btn peq peligro" data-aus-del="${k}">🗑 Borrar</button></li>`; }).join('')
+      : '<li class="sub">Sin vacaciones ni ausencias registradas.</li>';
+  };
+  pintarAus();
+  ['#pf-vacComputo','#pf-vacAnuales','#pf-alta','#pf-bajaContrato','#pf-dias','#au-desde','#au-hasta'].forEach(sel=>{ const el=m.el.querySelector(sel); if(el) el.addEventListener('change',()=>{ pintarAus(); previaAus(); }); });
+  if(id){
+    const n=new Date(), l=lunesDe(n);
+    Promise.all([horasPeriodo(id,l.getTime(),Date.now()), horasPeriodo(id,new Date(n.getFullYear(),n.getMonth(),1).getTime(),Date.now()), horasPeriodo(id,inicioDia(hoyStr()),Date.now())]).then(([hs,hm,hh])=>{
+      const box=m.el.querySelector('#pf-horas'); if(!box) return;
+      const pact=numero(p.horasSemana), am=mapaAusencias(AUSENCIAS[id]);
+      const pm=previstas(p, am, claveDia(new Date(n.getFullYear(),n.getMonth(),1).getTime()), hoyStr(), hh);
+      box.innerHTML=`<div>Esta semana<b>${dur(hs)}</b></div><div>Este mes<b>${dur(hm)}</b></div>`+
+        (pm!=null?`<div>Previstas mes (hasta ahora)<b>${dur(pm)}</b></div><div>Diferencia<b>${difHTML(hm,pm)}</b></div>`:'')+
+        (pact?`<div>Contrato<b>${String(pact).replace('.',',')} h/sem</b></div>`:'')+
+        (p.alta?`<div>Antigüedad<b>${antig(p.alta)}</b></div>`:'');
+    });
+  }
+  m.el.addEventListener('click', async ev=>{
+    if(ev.target.dataset.x!=null) return m.cerrar();
+    if(ev.target.dataset.pin0!=null){
+      if(!await confirmar('El PIN de '+e.nombre+' volverá a ser 0000 y la próxima vez que entre tendrá que elegir uno nuevo.','Sí, poner 0000')) return;
+      const o={...EMPLEADOS[id], pin:await hashPin(PIN_INICIAL,id), pinProvisional:true};
+      await DB.guardarEmpleado(id,o); await DB.auditar({accion:'PIN restablecido a 0000', empId:id, nombre:e.nombre});
+      ev.target.previousElementSibling.textContent='Provisional (aún no lo ha cambiado)'; ev.target.previousElementSibling.className='flag off';
+      toast('PIN de '+esc(e.nombre)+' puesto a 0000', true); return;
+    }
+    if(ev.target.dataset.ausAdd!=null){
+      const g=s=>m.el.querySelector(s), de=g('#au-desde').value, ha=g('#au-hasta').value||de;
+      if(!de) return g('#au-err').textContent='Pon la fecha de inicio';
+      if(ha<de) return g('#au-err').textContent='La fecha final es anterior a la inicial';
+      const o={tipo:g('#au-tipo').value, desde:de, hasta:ha}; const nota=g('#au-nota').value.trim(); if(nota) o.nota=nota;
+      const k=await DB.guardarAusencia(id,o); (AUSENCIAS[id]=AUSENCIAS[id]||{})[k]=o;
+      await DB.auditar({accion:'añadir ausencia', empId:id, ...o});
+      g('#au-desde').value=g('#au-hasta').value=g('#au-nota').value=''; g('#au-err').textContent=''; g('#au-prev').innerHTML='';
+      pintarAus(); pintarEmpleados(); pintarResumen(); return;
+    }
+    if(ev.target.dataset.ausDel){
+      const k=ev.target.dataset.ausDel, a=(AUSENCIAS[id]||{})[k]; if(!a) return;
+      if(!await confirmar('Borrar '+TIPOS_AUS[a.tipo].toLowerCase()+' de '+(EMPLEADOS[id]||{}).nombre+' del '+a.desde.split('-').reverse().join('/')+' al '+a.hasta.split('-').reverse().join('/')+'.')) return;
+      await DB.borrarAusencia(id,k); delete AUSENCIAS[id][k];
+      await DB.auditar({accion:'quitar ausencia', empId:id, ...a});
+      pintarAus(); pintarEmpleados(); pintarResumen(); return;
+    }
+    if(ev.target.dataset.ok==null) return;
+    const g=s=>m.el.querySelector(s), nom=g('#em-nom').value.trim(), pin=g('#em-pin').value;
+    if(!nom) return g('#em-err').textContent='Pon el nombre';
+    if(!id && !/^\d{4}$/.test(pin)) return g('#em-err').textContent='El PIN deben ser 4 números';
+    const nid = id || DB.nuevoId();
+    const lugs=[...m.el.querySelectorAll('#em-lug input:checked')].map(x=>x.value);
+    if(!lugs.length) return g('#em-err').textContent='Asigna al menos un lugar de trabajo';
+    const mg=Math.max(0,Math.min(30,Math.round(numero(g('#em-margen').value)||0)));
+    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg};
+    if(pin){ o.pin=await hashPin(pin,nid); o.pinProvisional=true; }
+    const perfil={}; CAMPOS_PERFIL.forEach(k=>{ const val=g('#pf-'+k).value.trim(); if(val) perfil[k]=val; });
+    if(perfil.dni) perfil.dni=perfil.dni.toUpperCase().replace(/[\s-]/g,'');
+    const dsel=[...m.el.querySelectorAll('#pf-dias input:checked')].map(x=>+x.value);
+    if(!dsel.length) return g('#em-err').textContent='Marca al menos un día de trabajo';
+    perfil.diasSemana=dsel;
+    await DB.guardarEmpleado(nid,o);
+    await DB.guardarPerfil(nid,perfil); PERFILES[nid]=perfil;
+    await DB.auditar({accion:id?'editar empleado':'alta empleado', empId:nid, nombre:nom, cambioPin:!!pin});
+    m.cerrar(); toast('Empleado guardado', true); pintarEmpleados(); pintarResumen();
+  });
+}
+/* Alta rápida: solo lo imprescindible; el PIN provisional se genera solo */
+function altaRapida(){
+  const genPin=()=>{ let p; do{ p=String(Math.floor(1000+Math.random()*9000)); }while(/^(\d)\1{3}$/.test(p)||p==='1234'); return p; };
+  let pin=PIN_INICIAL, horas='40';
+  const m=abrirModal(`<h3>Nuevo empleado</h3>
+    <p class="sub">Solo lo básico. Los datos personales, vacaciones, etc. los puedes completar después en su ficha.</p>
+    <label>Nombre</label><input id="ar-nom" placeholder="Ej.: Conchi" autocomplete="off">
+    <label>Fecha de alta en la empresa <span style="font-weight:400">(para calcular sus vacaciones; si lleva más de un año, puedes dejarla vacía)</span></label>
+    <input id="ar-alta" type="date" style="width:auto">
+    <label>Lugar de trabajo</label>
+    <div class="chips" id="ar-lug">${LUGARES().map(t=>`<label class="chip"><input type="checkbox" value="${esc(t)}" ${t===tiendaTablet?'checked':''}><span>${esc(t)}</span></label>`).join('')}</div>
+    <label>Horas semanales de contrato</label>
+    <div class="chips" id="ar-horas">${['40','30','20'].map(h=>`<label class="chip"><input type="radio" name="arh" value="${h}" ${h===horas?'checked':''}><span>${h} h</span></label>`).join('')}
+      <label class="chip"><input type="radio" name="arh" value="otro"><span>Otra</span></label><input id="ar-otra" type="number" min="1" max="60" step="0.5" placeholder="h" style="width:80px;display:none"></div>
+    <label>Margen de entrada <span style="font-weight:400">(minutos que se le suman al fichar la entrada, por lo que tarda en encender el ordenador o el móvil)</span></label>
+    <div class="chips" id="ar-margen">${[0,2,5,10].map(v=>`<label class="chip"><input type="radio" name="arm" value="${v}" ${v===0?'checked':''}><span>${v?v+' min':'Sin margen'}</span></label>`).join('')}</div>
+    <label>Días que trabaja</label>
+    <div class="chips" id="ar-dias">${DIAS_SEM.map(([n,l])=>`<label class="chip"><input type="checkbox" value="${n}" ${n!==0?'checked':''}><span>${l}</span></label>`).join('')}</div>
+    <div class="ficha-res" style="margin-top:16px;align-items:center"><div>PIN provisional<b id="ar-pin" style="font-size:1.6rem;letter-spacing:.15em">${pin}</b></div></div>
+    <p class="sub" style="font-size:.82rem;margin:4px 0 0">La primera vez que entre le pedirá elegir su PIN personal y el 0000 dejará de valer para él.</p>
+    <div class="msg-err" id="ar-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn" data-ok="ficha">Guardar y completar ficha</button><button class="btn pri" data-ok="listo">Guardar</button></div>`);
+  setTimeout(()=>m.el.querySelector('#ar-nom').focus(),50);
+  m.el.querySelector('#ar-horas').addEventListener('change',e=>{ m.el.querySelector('#ar-otra').style.display = e.target.value==='otro'?'block':'none'; });
+  m.el.addEventListener('click', async ev=>{
+    const t=ev.target;
+    if(t.dataset.x!=null) return m.cerrar();
+    if(t.dataset.gen!=null){ pin=genPin(); m.el.querySelector('#ar-pin').textContent=pin; return; }
+    if(!t.dataset.ok) return;
+    const g=x=>m.el.querySelector(x), err=g('#ar-err'), nom=g('#ar-nom').value.trim();
+    const lugs=[...m.el.querySelectorAll('#ar-lug input:checked')].map(x=>x.value);
+    const dias=[...m.el.querySelectorAll('#ar-dias input:checked')].map(x=>+x.value);
+    let hs=(m.el.querySelector('#ar-horas input:checked')||{}).value; if(hs==='otro') hs=g('#ar-otra').value;
+    if(!nom) return err.textContent='Pon el nombre';
+    if(Object.values(EMPLEADOS).some(e=>e.nombre.toLowerCase()===nom.toLowerCase())) return err.textContent='Ya hay un empleado con ese nombre (añade la inicial del apellido)';
+    if(!lugs.length) return err.textContent='Elige al menos un lugar de trabajo';
+    if(!numero(hs)) return err.textContent='Indica las horas semanales';
+    if(!dias.length) return err.textContent='Marca al menos un día';
+    t.disabled=true;
+    const id=DB.nuevoId(), alta=g('#ar-alta').value;
+    const mg=Number((m.el.querySelector('#ar-margen input:checked')||{}).value)||0;
+    await DB.guardarEmpleado(id,{nombre:nom, lugares:lugs, tienda:lugs[0], activo:true, margenEntrada:mg, pin:await hashPin(pin,id), pinProvisional:true});
+    const perfil={horasSemana:String(numero(hs)), diasSemana:dias, vacAnuales:'30', vacComputo:'naturales', ...(alta?{alta}:{})};
+    await DB.guardarPerfil(id,perfil); PERFILES[id]=perfil;
+    await DB.auditar({accion:'alta empleado', empId:id, nombre:nom});
+    m.cerrar(); pintarEmpleados(); pintarResumen();
+    if(t.dataset.ok==='ficha') { EMPLEADOS[id]=EMPLEADOS[id]||{nombre:nom,lugares:lugs,tienda:lugs[0],activo:true}; formEmpleado(id); }
+    const a=abrirModal(`<h3>✅ ${esc(nom)} dado de alta</h3><p class="sub">Su PIN provisional es:</p>
+      <div style="font-size:2.6rem;font-weight:800;letter-spacing:.2em;text-align:center;margin:6px 0 10px">${pin}</div>
+      <p class="sub">Que entre con este PIN: la primera vez le pedirá elegir el suyo. Si algún día lo olvida, en su ficha tienes el botón para volver a ponerle 0000.</p>
+      <div class="fila-btn"><button class="btn pri" data-x>Entendido</button></div>`);
+    a.el.addEventListener('click',e=>{ if(e.target.dataset.x!=null) a.cerrar(); });
+  });
+}
+
+function antig(alta){
+  const a=new Date(inicioDia(alta)), n=new Date();
+  let meses=(n.getFullYear()-a.getFullYear())*12+(n.getMonth()-a.getMonth()); if(n.getDate()<a.getDate()) meses--;
+  if(meses<0) return '—';
+  const y=Math.floor(meses/12), mm=meses%12;
+  return (y?y+' año'+(y>1?'s':'')+' ':'')+(mm||!y?mm+' mes'+(mm!==1?'es':''):'');
+}
+
+/* Solicitudes de vacaciones (admin) */
+let solFiltro='pendiente';
+document.querySelectorAll('[data-solf]').forEach(b=>b.onclick=()=>{ solFiltro=b.dataset.solf; document.querySelectorAll('[data-solf]').forEach(x=>x.classList.toggle('act',x===b)); pintarSolicitudes(); });
+function pintarSolicitudes(){
+  const todas=[]; Object.entries(SOLICITUDES||{}).forEach(([id,ss])=>Object.entries(ss||{}).forEach(([k,a])=>todas.push({id,k,...a})));
+  const pend=todas.filter(a=>a.estado==='pendiente').length;
+  const bd=$('#sol-badge'); bd.textContent=pend; bd.classList.toggle('oculto',!pend);
+  const l=todas.filter(a=>solFiltro==='todas' || a.estado==='pendiente').sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1) || a.desde.localeCompare(b.desde));
+  if(!l.length){ $('#sol-lista').innerHTML=`<p class="sub">${solFiltro==='pendiente'?'No hay solicitudes pendientes.':'Todavía no hay solicitudes.'}</p>`; return; }
+  $('#sol-lista').innerHTML=l.map(a=>{
+    const p=PERFILES[a.id]||{}, e=EMPLEADOS[a.id]||{nombre:a.nombre}, yy=+a.desde.slice(0,4);
+    const cuenta=diasQueCuentan(p,a.desde,a.hasta,yy), quedan=vacCorresponden(p,yy)-vacacionesUsadas(p,AUSENCIAS[a.id],yy);
+    const coin=a.estado==='pendiente'?coincidencias(a.id,a.desde,a.hasta,AUSENCIAS,SOLICITUDES):[];
+    return `<div class="sol ${a.estado==='pendiente'?'pend':''}">
+      <div class="cab-sol"><div><b>${esc(e.nombre)}</b> · ${TIPOS_AUS[a.tipo]} <span class="etq ${a.estado}" style="margin-left:6px">${ESTADOS_SOL[a.estado]}</span></div>
+        <div class="sub" style="margin:0;font-size:.8rem">Pedida el ${new Date(a.creada).toLocaleDateString('es-ES')}</div></div>
+      <div style="margin-top:6px">${fCortaISO(a.desde)}${a.hasta!==a.desde?' → '+fCortaISO(a.hasta):''} · ${textoDias(p,a)}</div>
+      ${a.tipo==='vacaciones'&&a.estado==='pendiente'?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Le quedan ${quedan} días en ${yy}; si la apruebas, le quedarán <b style="color:${quedan-cuenta<0?'var(--rojo)':'inherit'}">${quedan-cuenta}</b>.</div>`:''}
+      ${a.nota?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Comentario: ${esc(a.nota)}</div>`:''}
+      ${a.respuesta?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Tu respuesta: ${esc(a.respuesta)}</div>`:''}
+      ${coin.length?`<div class="aviso-coin">⚠ Coincide con compañeros de su lugar de trabajo:<br>${coin.map(esc).join('<br>')}</div>`:''}
+      ${a.estado==='pendiente'?`<div class="fila-btn" style="margin-top:10px"><input placeholder="Comentario para el empleado (opcional)" data-resp="${a.id}|${a.k}" style="flex:1;min-width:180px"><button class="btn peligro" data-rech="${a.id}|${a.k}">Rechazar</button><button class="btn pri" data-apro="${a.id}|${a.k}">Aprobar</button></div>`:''}
+    </div>`; }).join('');
+}
+$('#sol-lista').addEventListener('click', async ev=>{
+  const t=ev.target, ref=t.dataset.apro||t.dataset.rech; if(!ref) return;
+  const [id,k]=ref.split('|'), a=SOLICITUDES[id][k], e=EMPLEADOS[id]||{nombre:a.nombre};
+  const resp=(document.querySelector(`[data-resp="${ref}"]`)||{}).value?.trim()||'';
+  const aprobar=!!t.dataset.apro;
+  if(!await confirmar(`${aprobar?'Aprobar':'Rechazar'} ${TIPOS_AUS[a.tipo].toLowerCase()} de ${e.nombre} del ${a.desde.split('-').reverse().join('/')} al ${a.hasta.split('-').reverse().join('/')}.`, aprobar?'Sí, aprobar':'Sí, rechazar')) return;
+  const pt={estado:aprobar?'aprobada':'rechazada', respondida:Date.now()}; if(resp) pt.respuesta=resp;
+  if(aprobar){ const au={tipo:a.tipo, desde:a.desde, hasta:a.hasta, ...(a.nota?{nota:a.nota}:{}), solicitud:k}; const ak=await DB.guardarAusencia(id,au); (AUSENCIAS[id]=AUSENCIAS[id]||{})[ak]=au; pt.ausencia=ak; }
+  await DB.actualizarSolicitud(id,k,pt); Object.assign(a,pt);
+  await DB.auditar({accion:aprobar?'aprobar vacaciones':'rechazar vacaciones', empId:id, desde:a.desde, hasta:a.hasta, respuesta:resp});
+  toast(aprobar?`Aprobadas. Ya están en las vacaciones de ${esc(e.nombre)}.`:'Solicitud rechazada', true);
+  pintarSolicitudes(); pintarEmpleados(); pintarResumen();
+});
+
+/* Ajustes */
+$('#s-guardar-tienda').onclick=()=>{ tiendaTablet=$('#s-tienda').value; lsSet('fichaje_tienda',tiendaTablet); toast('Lugar de este dispositivo: '+(tiendaTablet||'sin asignar'), true); };
+$('#s-guardar-festivos').onclick=async ()=>{
+  const lineas=$('#s-festivos').value.split('\n').map(x=>x.trim()).filter(Boolean), fechas=[], malas=[];
+  lineas.forEach(l=>{ const m=l.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/); const iso=l.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) fechas.push(m[3]+'-'+pad(m[2])+'-'+pad(m[1])); else if(iso) fechas.push(iso[0]); else malas.push(l); });
+  if(malas.length) return toast('No entiendo estas líneas: '+esc(malas.join(', ')));
+  await DB.guardarConfig({festivos:[...new Set(fechas)].sort(), festivosTxt:lineas.join('\n')}); CONFIG=await DB.leerConfig();
+  toast(fechas.length+' festivos guardados', true); pintarResumen();
+};
+$('#s-guardar-lugares').onclick=async ()=>{
+  const l=[...new Set($('#s-lugares').value.split('\n').map(x=>x.trim()).filter(Boolean))];
+  if(!l.length) return toast('Pon al menos un lugar');
+  await DB.guardarConfig({lugares:l}); CONFIG=await DB.leerConfig(); rellenarSelects(); toast('Lugares guardados', true);
+};
+$('#s-guardar-pin').onclick=async ()=>{
+  const a=$('#s-pin1').value, b=$('#s-pin2').value;
+  if(!/^\d{4}$/.test(a)) return toast('El PIN deben ser 4 números');
+  if(a!==b) return toast('Los PIN no coinciden');
+  await DB.guardarConfig({adminPin: await hashPin(a,'admin')}); CONFIG=await DB.leerConfig();
+  $('#s-pin1').value=$('#s-pin2').value=''; toast('PIN de administración cambiado', true);
+};
+$('#s-reset').onclick=async ()=>{ if(await confirmar('Se borrarán todos los empleados, fichajes, vacaciones y ajustes de ejemplo de este navegador.','Sí, empezar en blanco')){ DB.reset(); lsSet('fichaje_sin_ejemplos','1'); location.reload(); } };
+$('#s-guardar-inicio').onclick=async ()=>{ await DB.guardarConfig({inicioFichaje:$('#s-inicio').value||null}); CONFIG=await DB.leerConfig(); toast('Guardado', true); pintarResumen(); };
+$('#s-horas0').onclick=async ()=>{ if(await confirmar('Se borrarán todos los fichajes de prueba y las horas previstas empezarán a contar desde hoy. Los empleados, sus fichas, vacaciones y ajustes se quedan como están.','Sí, poner a cero')){ DB.borrarFichajes(); await DB.guardarConfig({inicioFichaje:hoyStr()}); CONFIG=await DB.leerConfig(); $('#s-inicio').value=CONFIG.inicioFichaje; toast('Horas a cero. Se empieza a contar desde hoy.', true); buscar(); pintarResumen(); escucharHoy(); } };
+$('#s-ejemplos').onclick=async ()=>{ if(await confirmar('Se borrará lo que hayas metido y se cargarán otra vez los datos de ejemplo.','Sí, cargar ejemplos')){ DB.reset(); lsSet('fichaje_sin_ejemplos',''); location.reload(); } };
+
+/* ------------------------- DATOS DE DEMO ------------------------- */
+async function sembrarDemo(){
+  const emps=[['Isabel','Mirat'],['Álvaro','Almacén'],['Alex','Carmelitas'],['Conchi','Valladolid']];
+  const puestos={Isabel:['Dependienta',40],'Álvaro':['Repartidor',30],Alex:['Dependiente',40],Conchi:['Dependienta',40]};
+  const extra={Isabel:['Carmelitas']};
+  const y=new Date().getFullYear();
+  const festTxt=['12/10/'+y+' Fiesta Nacional','08/12/'+y+' Inmaculada','25/12/'+y+' Navidad'];
+  const fest=[y+'-10-12',y+'-12-08',y+'-12-25'];
+  await DB.guardarConfig({adminPin: await hashPin('0000','admin'), festivos:fest, festivosTxt:festTxt.join('\n')});
+  const hoy=inicioDia(hoyStr()), ahora=Date.now();
+  const ausDemo={Isabel:[{tipo:'vacaciones',desde:claveDia(hoy-21*86400000),hasta:claveDia(hoy-17*86400000),nota:'Puente'}, {tipo:'vacaciones',desde:y+'-12-21',hasta:y+'-12-31'}],
+                 Alex:[{tipo:'asuntos',desde:claveDia(hoy-10*86400000),hasta:claveDia(hoy-10*86400000)}, {tipo:'vacaciones',desde:y+'-08-03',hasta:y+'-08-23'}],
+                 Conchi:[{tipo:'vacaciones',desde:y+'-07-13',hasta:y+'-07-26'}]};
+  const ids=[];
+  for(const [n,t] of emps){
+    const id=DB.nuevoId(); ids.push(id);
+    await DB.guardarEmpleado(id,{nombre:n,tienda:t,lugares:[t,...(extra[n]||[])],activo:true,margenEntrada:({Conchi:5,Isabel:2})[n]||0,pin:await hashPin('0000',id),pinProvisional:true});
+    await DB.guardarPerfil(id,{puesto:puestos[n][0], horasSemana:String(puestos[n][1]), contrato:'Indefinido', vacAnuales:'30', vacComputo:'naturales',
+      diasSemana: n==='Álvaro'?[2,3,4,5,6]:[1,2,3,4,5,6], alta: n==='Conchi' ? y+'-06-01' : (y-3)+'-03-01',
+      horario:n==='Álvaro'?'M-S según reparto':'L-V 10:00-14:00 y 17:00-20:30 · S 10:00-14:00'});
+    for(const a of (ausDemo[n]||[])) await DB.guardarAusencia(id,a);
+    if(n==='Alex') await DB.guardarSolicitud(id,{tipo:'vacaciones',desde:y+'-12-21',hasta:y+'-12-27',estado:'pendiente',creada:Date.now()-2*864e5,nombre:n,nota:'Para Navidad, si puede ser'});
+  }
+  for(let d=0; d<=40; d++){
+    const dia=hoy-d*86400000, dw=new Date(dia).getDay(), k=claveDia(dia); if(dw===0 || fest.includes(k)) continue;
+    ids.forEach((id,i)=>{
+      const e=emps[i];
+      if(dw===1 && e[0]==='Álvaro') return;
+      if((ausDemo[e[0]]||[]).some(a=>k>=a.desde && k<=a.hasta)) return;
+      const j=()=>Math.round((Math.random()*10-5))*60000, H=h=>dia+h*3600000+j();
+      const mg=({Conchi:5,Isabel:2})[e[0]]||0;
+      const add=(t,ts)=>{ if(ts<ahora) DB.nuevoRegistro({empId:id,nombre:e[0],tipo:t,tienda:e[1],origen:'tablet',ts, ...(t==='entrada'&&mg?{margen:mg}:{})}); };
+      add('entrada',H(10)); add('salida',H(14));
+      if(dw!==6){ add('entrada',H(e[0]==='Álvaro'?16.5:17)); if(!(d===3&&i===2)) add('salida',H(e[0]==='Álvaro'?19.5:20.5)); }
+    });
+  }
+}
+
+/* Instalable como app (solo cuando se abre desde internet, no como archivo) */
+if ('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+/* ------------------------- ARRANQUE ------------------------- */
+(async function(){
+  if (DB.modo==='demo' && DB.vacio() && lsGet('fichaje_sin_ejemplos')!=='1') await sembrarDemo();
+  CONFIG = await DB.leerConfig();
+  if (DB.modo==='demo' && lsGet('fichaje_horas0')!=='1') { DB.borrarFichajes(); await DB.guardarConfig({inicioFichaje:hoyStr()}); CONFIG=await DB.leerConfig(); lsSet('fichaje_horas0','1'); }   // una vez: empezar las pruebas con las horas a cero
+  if (DB.modo==='demo' && lsGet('fichaje_pin0000')!=='1') {   // una sola vez: todos los empleados con PIN provisional 0000
+    const emps = await new Promise(r=>{ const off=DB.onEmpleados(e=>{ r(e); }); setTimeout(()=>off&&off(),0); });
+    for (const [id,e] of Object.entries(emps)) await DB.guardarEmpleado(id,{...e, pin:await hashPin(PIN_INICIAL,id), pinProvisional:true});
+    lsSet('fichaje_pin0000','1');
+  }
+  DB.onConexion(ok=>{ const el=$('#k-con'); el.classList.toggle('off',!ok); el.textContent = ok?'Conectado':'Sin conexión — los fichajes se guardarán al volver la red'; });
+  $('#k-modo').textContent = DB.modo==='demo' ? 'Modo demo' : '';
+  DB.onEmpleados(e=>{ EMPLEADOS=e; pintarKiosco(); if(!$('#admin').classList.contains('oculto')){ pintarEmpleados(); rellenarSelects(); } });
+  tic(); setInterval(tic, 1000);
+})();
+</script>
+</body>
+</html>

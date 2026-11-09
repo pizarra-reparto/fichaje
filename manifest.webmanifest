@@ -1,0 +1,17 @@
+{
+  "name": "Fichaje · Colchonería Blázquez",
+  "short_name": "Fichaje",
+  "description": "Registro de jornada de Colchonería Blázquez",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f1f4f8",
+  "theme_color": "#1d3557",
+  "lang": "es",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
