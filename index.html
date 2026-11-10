@@ -530,7 +530,8 @@ function calcularDia(regs){
   for (const r of regs) {
     if (r.tipo==='entrada') {
       if (entrada!=null) { inc.push('Entrada '+hhmm(entrada)+' sin salida'); tramos.push([entrada,null]); }
-      entrada=r.ts; entradaEf=Math.max(r.ts-(Number(r.margen)||0)*60000, ultSalida); pIni=null; pausaTramo=0;
+      // Si llega antes de su hora de entrada, cuenta desde la hora de entrada (r.desde); si llega después, desde que ficha (menos el margen)
+      entrada=r.ts; entradaEf=Math.max(r.ts-(Number(r.margen)||0)*60000, ultSalida, Number(r.desde)||0); pIni=null; pausaTramo=0;
     } else if (r.tipo==='pausa_inicio') {
       if (entrada==null) inc.push('Pausa sin entrada');
       else if (pIni!=null) inc.push('Pausa duplicada');
@@ -541,7 +542,7 @@ function calcularDia(regs){
     } else if (r.tipo==='salida') {
       if (entrada==null) { inc.push('Salida '+hhmm(r.ts)+' sin entrada'); tramos.push([null,r.ts]); continue; }
       if (pIni!=null) { pausaTramo += r.ts-pIni; pIni=null; inc.push('Pausa sin cerrar'); }
-      neto += (r.ts-entradaEf) - pausaTramo; pausaTotal += pausaTramo; margenTotal += entrada-entradaEf;
+      neto += Math.max(0, (r.ts-entradaEf) - pausaTramo); pausaTotal += pausaTramo; margenTotal += Math.max(0, entrada-entradaEf);
       tramos.push([entrada,r.ts]); entrada=null; ultSalida=r.ts; pausaTramo=0;
     }
   }
@@ -630,6 +631,15 @@ function coincidencias(empId, desde, hasta, ausTodas, solTodas){
 }
 
 const difHTML = (hechas, prev) => { if(prev==null) return '—'; const d=hechas-prev; const cls=Math.abs(d)<15*60000?'':(d>0?'mas':'menos'); return `<span class="dif ${cls}">${d>=0?'+':'−'}${dur(Math.abs(d))}</span>`; };
+
+// Hora de entrada de su horario que corresponde a un fichaje de entrada (la más cercana, si está a menos de 2 h)
+function inicioHorario(emp, ts){
+  if(!emp || !emp.contarDesdeHorario) return null;
+  const hs=(emp.horasEntrada||[]).filter(h=>/^\d{1,2}:\d{2}$/.test(h)); if(!hs.length) return null;
+  const base=inicioDia(claveDia(ts)); let mejor=null;
+  hs.forEach(h=>{ const [H,M]=h.split(':').map(Number), t=base+H*3600000+M*60000; if(Math.abs(t-ts)<=2*3600000 && (mejor==null || Math.abs(t-ts)<Math.abs(mejor-ts))) mejor=t; });
+  return mejor;
+}
 
 const ACCIONES = {fuera:['entrada'], dentro:['pausa_inicio','salida'], pausa:['pausa_fin','salida']};
 const TXT_ESTADO = {fuera:'Fuera', dentro:'Trabajando', pausa:'En pausa'};
@@ -788,7 +798,7 @@ function mostrarAcciones(id){
   const emp=EMPLEADOS[id], regs=regsHoyDe(id).filter(r=>!r.anulado), est=estadoActual(regs);
   const lista = regs.length ? '<ul class="hoy-lista">'+regs.map(r=>`<li><span class="etq ${r.tipo}">${TIPOS[r.tipo]}</span><b>${hhmm(r.ts)}</b></li>`).join('')+'</ul>' : '<p class="sub">Aún no has fichado hoy.</p>';
   const c = calcularDia(regs);
-  const llevas = (est!=='fuera' && c.abierto) ? (()=>{ const t=c.inicioAbierto; return '<p class="sub">Llevas '+dur(c.neto + (Date.now()-t))+' hoy'+(emp.margenEntrada?' (incluye '+emp.margenEntrada+' min de margen de entrada)':'')+'.</p>'; })()
+  const llevas = (est!=='fuera' && c.abierto) ? (()=>{ const t=c.inicioAbierto; return '<p class="sub">Llevas '+dur(c.neto + Math.max(0,Date.now()-t))+' hoy'+(emp.margenEntrada?' (incluye '+emp.margenEntrada+' min de margen de entrada)':'')+'.</p>'; })()
                  : (c.neto? '<p class="sub">Total hoy: '+dur(c.neto)+'</p>':'');
   DB.leerSolicitudesDe(id).then(sl=>{ const box=document.getElementById('sol-aviso-'+id); if(!box) return;
     const nuevas=Object.values(sl||{}).filter(a=>(a.estado==='aprobada'||a.estado==='rechazada') && (a.respondida||0)>Date.now()-7*864e5);
@@ -818,7 +828,7 @@ function mostrarAcciones(id){
     }
     e.target.disabled=true;
     const fuera = !!(lugar && lugaresDe(emp).length && !lugaresDe(emp).includes(lugar));
-    await DB.nuevoRegistro({empId:id, nombre:emp.nombre, tipo:t, tienda:lugar, origen:tiendaTablet?'dispositivo':'personal', ...(fuera?{fueraDeLugar:true}:{}), ...(t==='entrada' && Number(emp.margenEntrada)>0 ? {margen:Number(emp.margenEntrada)} : {})});
+    await DB.nuevoRegistro({empId:id, nombre:emp.nombre, tipo:t, tienda:lugar, origen:tiendaTablet?'dispositivo':'personal', ...(fuera?{fueraDeLugar:true}:{}), ...(t==='entrada' && Number(emp.margenEntrada)>0 ? {margen:Number(emp.margenEntrada)} : {}), ...(t==='entrada' && inicioHorario(emp,Date.now()) ? {desde:inicioHorario(emp,Date.now())} : {})});
     verOtros=false;
     m.cerrar();
     toast(`<b>${TIPOS[t]}</b> registrada · ${hhmm(Date.now())}<br>${esc(emp.nombre)}${lugar?' · '+esc(lugar):''}`, true);
@@ -975,7 +985,8 @@ function detalleHTML(d){
     const fl=[r.origen==='admin'?'<span class="flag admin">Añadido por admin</span>':'',
               r.sinConexion?'<span class="flag off">Fichado sin conexión</span>':'',
               r.fueraDeLugar?'<span class="flag off">Fuera de su lugar asignado</span>':'',
-              r.margen?`<span class="flag">+${r.margen} min de margen (cuenta desde las ${hhmm(r.ts-r.margen*60000)})</span>`:'',
+              (r.tipo==='entrada' && r.desde && r.ts<r.desde) ? `<span class="flag">Llegó antes: cuenta desde las ${hhmm(r.desde)} (su hora de entrada)</span>`
+                : r.margen ? `<span class="flag">+${r.margen} min de margen (cuenta desde las ${hhmm(Math.max(r.ts-r.margen*60000, Number(r.desde)||0))})</span>` : '',
               r.tienda?`<span class="flag">${esc(r.tienda)}</span>`:''].join('');
     const mot = r.motivo?`<div class="inc">Motivo: ${esc(r.motivo)}</div>`:'';
     const anu = r.anulado?`<div class="inc">Anulado: ${esc(r.anulado.motivo)}</div>`:'';
@@ -1019,6 +1030,7 @@ function formRegistro(original){
     const empId=g('#r-emp'), emp=EMPLEADOS[empId];
     const nuevo={empId, nombre:emp?emp.nombre:(original&&original.nombre), tipo:g('#r-tipo'), tienda:g('#r-tienda'), ts, origen:'admin', motivo:mot, registradoEn:Date.now()};
     if(original){ nuevo.corrige=original.id; if(original.margen && nuevo.tipo==='entrada') nuevo.margen=original.margen; }
+    if(nuevo.tipo==='entrada' && emp){ const hi=inicioHorario(emp, ts); if(hi) nuevo.desde=hi; }
     const k=await DB.nuevoRegistro(nuevo);
     if(original){
       await DB.actualizarRegistro(original.id,{anulado:{motivo:'Corregido: '+mot, fecha:Date.now(), sustituidoPor:k}});
@@ -1286,6 +1298,7 @@ $('#i-gen').onclick=async ()=>{
       <div>Empresa: <b>Colchonería Blázquez S.L.</b> &nbsp;·&nbsp; Trabajador/a: <b>${esc(e.nombre)}</b>${lugaresDe(e).length?' &nbsp;·&nbsp; Centro de trabajo: '+esc(lugaresDe(e).join(', ')):''}</div><br>
       <table style="width:100%;border-collapse:collapse"><tr><th>Día</th><th>Entrada – Salida</th><th>Pausas</th><th>Horas</th><th>Observaciones</th></tr>${filas}
       <tr><td colspan="3"><b>Total mes</b></td><td style="text-align:right"><b>${dur(total)}</b></td><td></td></tr></table>
+      ${regs.some(r=>r.empId===id && r.desde && r.ts<r.desde) ? `<p style="font-size:9.5px;color:#555">Cuando ficha la entrada antes de su hora de entrada, las horas se cuentan desde la hora de entrada de su horario. Las horas mostradas en la tabla son las fichadas.</p>` : ''}
       ${regs.some(r=>r.empId===id && r.margen) ? `<p style="font-size:9.5px;color:#555">Las horas incluyen un margen de entrada de ${[...new Set(regs.filter(r=>r.empId===id&&r.margen).map(r=>r.margen))].join('/')} min por fichaje de entrada (tiempo de encendido del dispositivo). Las horas de entrada mostradas son las fichadas.</p>` : ''}
       <p style="font-size:9.5px;color:#555">Registro de jornada conforme al art. 34.9 del Estatuto de los Trabajadores. Los registros se conservan durante cuatro años.</p>
       <div class="firmas"><div>Firma de la empresa</div><div>Firma del trabajador/a</div></div></div>`;
@@ -1304,7 +1317,7 @@ function pintarEmpleados(){
     return `<tr><td><b>${esc(e.nombre)}</b>${p.nombreCompleto?`<div class="sub" style="margin:0;font-size:.8rem">${esc(p.nombreCompleto)}</div>`:''}</td>
      <td>${esc(p.puesto||'—')}</td><td>${esc(lugaresDe(e).join(', ')||'—')}</td>
      <td>${p.telefono?`<a href="tel:${esc(p.telefono)}">${esc(p.telefono)}</a>`:'—'}</td>
-     <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}</td>
+     <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}${e.contarDesdeHorario&&(e.horasEntrada||[]).length?`<div class="sub" style="margin:0;font-size:.78rem">Entrada ${e.horasEntrada.join(' y ')}</div>`:''}</td>
      <td class="num">${(()=>{ const y=new Date().getFullYear(), u=vacacionesUsadas(p,AUSENCIAS[id],y), t=vacCorresponden(p,y); return `quedan <b>${t-u}</b> de ${t}`; })()}</td>
      <td>${e.activo===false?'<span class="flag">Baja</span>':'<span class="flag admin">Activo</span>'}</td>
      <td class="num"><button class="btn peq" data-ed="${id}">Ver perfil</button></td></tr>`;}).join('') : '<tr><td class="sub">Aún no hay empleados.</td></tr>';
@@ -1340,6 +1353,12 @@ function formEmpleado(id){
       <div class="check" style="margin-top:34px"><input type="checkbox" id="em-act" ${e.activo!==false?'checked':''}><span>Activo</span></div>
     </div>
     <p class="sub" style="font-size:.8rem;margin:4px 0 0">Minutos que se le suman en cada entrada por lo que tarda en encender el ordenador o el móvil. Ej.: con 5 min, si ficha a las 16:30 cuenta desde las 16:25. Se aplica a los fichajes que haga a partir de ahora.</p>
+    <div class="check" style="margin-top:14px"><input type="checkbox" id="em-desde" ${e.contarDesdeHorario?'checked':''}><span><b>Si llega antes de su hora de entrada, contar desde la hora de entrada</b></span></div>
+    <div class="grid2">
+      <div><label>Hora de entrada mañana</label><input id="em-h1" type="time" value="${esc((e.horasEntrada||[])[0]||'')}"></div>
+      <div><label>Hora de entrada tarde <span style="font-weight:400">(si hace jornada partida)</span></label><input id="em-h2" type="time" value="${esc((e.horasEntrada||[])[1]||'')}"></div>
+    </div>
+    <p class="sub" style="font-size:.8rem;margin:4px 0 0">Ej.: entrada a las 10:30. Si ficha a las 10:20, cuenta desde las 10:30. Si ficha a las 10:35, cuenta desde las 10:35 (menos el margen). La salida siempre cuenta a la hora real, así que si se queda más tiempo, se le suma. Se aplica a los fichajes que haga a partir de ahora.</p>
 
     <div class="seccion">Datos personales</div>
     <div class="grid2">
@@ -1457,7 +1476,9 @@ function formEmpleado(id){
     const lugs=[...m.el.querySelectorAll('#em-lug input:checked')].map(x=>x.value);
     if(!lugs.length) return g('#em-err').textContent='Asigna al menos un lugar de trabajo';
     const mg=Math.max(0,Math.min(30,Math.round(numero(g('#em-margen').value)||0)));
-    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg};
+    const horasEnt=[g('#em-h1').value, g('#em-h2').value].filter(Boolean);
+    if(g('#em-desde').checked && !horasEnt.length) return g('#em-err').textContent='Pon al menos una hora de entrada';
+    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg, horasEntrada:horasEnt, contarDesdeHorario:g('#em-desde').checked};
     if(pin){ o.pin=await hashPin(pin,nid); o.pinProvisional=true; }
     const perfil={}; CAMPOS_PERFIL.forEach(k=>{ const val=g('#pf-'+k).value.trim(); if(val) perfil[k]=val; });
     if(perfil.dni) perfil.dni=perfil.dni.toUpperCase().replace(/[\s-]/g,'');
@@ -1486,6 +1507,8 @@ function altaRapida(){
       <label class="chip"><input type="radio" name="arh" value="otro"><span>Otra</span></label><input id="ar-otra" type="number" min="1" max="60" step="0.5" placeholder="h" style="width:80px;display:none"></div>
     <label>Margen de entrada <span style="font-weight:400">(minutos que se le suman al fichar la entrada, por lo que tarda en encender el ordenador o el móvil)</span></label>
     <div class="chips" id="ar-margen">${[0,2,5,10].map(v=>`<label class="chip"><input type="radio" name="arm" value="${v}" ${v===0?'checked':''}><span>${v?v+' min':'Sin margen'}</span></label>`).join('')}</div>
+    <label>Horas de entrada <span style="font-weight:400">(si llega antes, contará desde esta hora; déjalo vacío para contar siempre desde que ficha)</span></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="ar-h1" type="time" style="width:auto" title="Mañana"><input id="ar-h2" type="time" style="width:auto" title="Tarde (jornada partida)"></div>
     <label>Días que trabaja</label>
     <div class="chips" id="ar-dias">${DIAS_SEM.map(([n,l])=>`<label class="chip"><input type="checkbox" value="${n}" ${n!==0?'checked':''}><span>${l}</span></label>`).join('')}</div>
     <div class="ficha-res" style="margin-top:16px;align-items:center"><div>PIN provisional<b id="ar-pin" style="font-size:1.6rem;letter-spacing:.15em">${pin}</b></div></div>
@@ -1511,7 +1534,8 @@ function altaRapida(){
     t.disabled=true;
     const id=DB.nuevoId(), alta=g('#ar-alta').value;
     const mg=Number((m.el.querySelector('#ar-margen input:checked')||{}).value)||0;
-    await DB.guardarEmpleado(id,{nombre:nom, lugares:lugs, tienda:lugs[0], activo:true, margenEntrada:mg, pin:await hashPin(pin,id), pinProvisional:true});
+    const hEnt=[g('#ar-h1').value, g('#ar-h2').value].filter(Boolean);
+    await DB.guardarEmpleado(id,{nombre:nom, lugares:lugs, tienda:lugs[0], activo:true, margenEntrada:mg, horasEntrada:hEnt, contarDesdeHorario:hEnt.length>0, pin:await hashPin(pin,id), pinProvisional:true});
     const perfil={horasSemana:String(numero(hs)), diasSemana:dias, vacAnuales:'30', vacComputo:'naturales', ...(alta?{alta}:{})};
     await DB.guardarPerfil(id,perfil); PERFILES[id]=perfil;
     await DB.auditar({accion:'alta empleado', empId:id, nombre:nom});
