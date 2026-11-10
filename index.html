@@ -375,7 +375,7 @@ const FIREBASE_CONFIG = {
   appId: "1:211437981374:web:3e5a3be8bcb979cf0d58ef"
 };
 // Datos de la ficha que necesitan ver los propios empleados (horas, vacaciones). El resto (DNI, dirección…) solo lo ve el administrador.
-const CAMPOS_LABORALES = ['puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','vacAnuales','vacComputo','horario'];
+const CAMPOS_LABORALES = ['puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','diasReparto','vacAnuales','vacComputo','horario'];
 /* Ejemplo:
 const FIREBASE_CONFIG = {
   apiKey: "AIza...",
@@ -563,6 +563,8 @@ const CORTO_AUS = {vacaciones:'Vac.', asuntos:'A.P.', baja:'Baja', permiso:'Perm
 const DIAS_SEM = [[1,'L'],[2,'M'],[3,'X'],[4,'J'],[5,'V'],[6,'S'],[0,'D']];
 const sumarDia = ts => { const x=new Date(ts); x.setDate(x.getDate()+1); return x.getTime(); };
 const numero = v => parseFloat(String(v??'').replace(',','.'));
+// Días en que se reparten las horas de contrato (si no se indica, los mismos días que trabaja)
+const diasReparto = p => Array.isArray(p.diasReparto) && p.diasReparto.length ? p.diasReparto.map(Number) : diasTrabajo(p);
 const diasTrabajo = p => Array.isArray(p.diasSemana) && p.diasSemana.length ? p.diasSemana.map(Number) : [1,2,3,4,5,6];
 const vacAnuales = p => numero(p.vacAnuales) || 30;
 // Vacaciones que le corresponden en un año: proporcionales a los días que está contratado ese año
@@ -593,7 +595,7 @@ function mapaAusencias(aus){
 // hechasHoy: horas ya trabajadas hoy. El día de hoy solo cuenta como previsto lo que ya se ha trabajado (hasta su jornada), para no salir en negativo a media jornada.
 function previstas(p, ausMap, desde, hasta, hechasHoy=0){
   const hs=numero(p.horasSemana); if(!hs) return null;
-  const dias=diasTrabajo(p), porDia=hs/dias.length*3600000, fest=festivosSet();
+  const dias=diasReparto(p), porDia=hs/dias.length*3600000, fest=festivosSet();
   let d=inicioDia(desde), f=Math.min(inicioDia(hasta), inicioDia(hoyStr()));
   if(p.alta && inicioDia(p.alta)>d) d=inicioDia(p.alta);
   if(CONFIG && CONFIG.inicioFichaje && inicioDia(CONFIG.inicioFichaje)>d) d=inicioDia(CONFIG.inicioFichaje);   // antes de empezar a fichar no se prevé nada
@@ -1386,8 +1388,14 @@ function formEmpleado(id){
       ${inp('horasSemana','Horas semanales de contrato','type="number" min="0" max="60" step="0.5"')}
       ${inp('bajaContrato','Fin de contrato (si es temporal)','type="date"')}
     </div>
-    <label>Días que trabaja <span style="font-weight:400">(para repartir las horas de contrato)</span></label>
+    <label>Días que trabaja <span style="font-weight:400">(cuentan como laborables para vacaciones y, si no marcas lo de abajo, para repartir las horas)</span></label>
     <div class="chips" id="pf-dias">${DIAS_SEM.map(([n,l])=>`<label class="chip"><input type="checkbox" value="${n}" ${diasTrabajo(p).includes(n)?'checked':''}><span>${l}</span></label>`).join('')}</div>
+    <div class="check"><input type="checkbox" id="pf-rep-on" ${Array.isArray(p.diasReparto)&&p.diasReparto.length?'checked':''}><span>Las horas las hace solo en algunos de esos días (p. ej. trabaja de lunes a sábado pero hace todas las horas de lunes a viernes)</span></div>
+    <div id="pf-rep-box" style="${Array.isArray(p.diasReparto)&&p.diasReparto.length?'':'display:none'}">
+      <label>Días en que hace las horas</label>
+      <div class="chips" id="pf-rep">${DIAS_SEM.map(([n,l])=>`<label class="chip"><input type="checkbox" value="${n}" ${(Array.isArray(p.diasReparto)&&p.diasReparto.length?p.diasReparto.map(Number):[1,2,3,4,5]).includes(n)?'checked':''}><span>${l}</span></label>`).join('')}</div>
+      <p class="sub" style="font-size:.8rem;margin:4px 0 0">Las horas de contrato se reparten solo entre estos días, así la semana y el mes cuadran día a día. Para las vacaciones siguen contando todos los días que trabaja.</p>
+    </div>
     <label>Horario habitual</label><input id="pf-horario" value="${v('horario')}" placeholder="L-V 10:00-14:00 y 17:00-20:30 · S 10:00-14:00">
     <div class="grid2">
       ${inp('vacAnuales','Vacaciones por año completo trabajado','type="number" min="0" max="60" placeholder="30"')}
@@ -1417,6 +1425,7 @@ function formEmpleado(id){
     <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`, true);
   m.el.querySelector('#pf-contrato').value=p.contrato||'';
   m.el.querySelector('#pf-vacComputo').value=p.vacComputo||'naturales';
+  m.el.querySelector('#pf-rep-on').addEventListener('change',e=>{ m.el.querySelector('#pf-rep-box').style.display=e.target.checked?'':'none'; });
   const perfilVivo = () => ({...p, vacComputo:m.el.querySelector('#pf-vacComputo').value, vacAnuales:m.el.querySelector('#pf-vacAnuales').value||p.vacAnuales,
       alta:m.el.querySelector('#pf-alta').value, bajaContrato:m.el.querySelector('#pf-bajaContrato').value,
       diasSemana:[...m.el.querySelectorAll('#pf-dias input:checked')].map(x=>+x.value)});
@@ -1494,6 +1503,11 @@ function formEmpleado(id){
     const dsel=[...m.el.querySelectorAll('#pf-dias input:checked')].map(x=>+x.value);
     if(!dsel.length) return g('#em-err').textContent='Marca al menos un día de trabajo';
     perfil.diasSemana=dsel;
+    if(g('#pf-rep-on').checked){
+      const rsel=[...m.el.querySelectorAll('#pf-rep input:checked')].map(x=>+x.value);
+      if(!rsel.length) return g('#em-err').textContent='Marca los días en que hace las horas';
+      perfil.diasReparto=rsel;
+    }
     await DB.guardarEmpleado(nid,o);
     await DB.guardarPerfil(nid,perfil); PERFILES[nid]=perfil;
     await DB.auditar({accion:id?'editar empleado':'alta empleado', empId:nid, nombre:nom, cambioPin:!!pin});
