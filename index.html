@@ -635,7 +635,8 @@ const difHTML = (hechas, prev) => { if(prev==null) return '—'; const d=hechas-
 // Hora de entrada de su horario que corresponde a un fichaje de entrada (la más cercana, si está a menos de 2 h)
 function inicioHorario(emp, ts){
   if(!emp || !emp.contarDesdeHorario) return null;
-  const hs=(emp.horasEntrada||[]).filter(h=>/^\d{1,2}:\d{2}$/.test(h)); if(!hs.length) return null;
+  const dia=(emp.horasEntradaDia||{})[new Date(ts).getDay()];   // horario distinto ese día de la semana (p. ej. sábados)
+  const hs=((dia&&dia.length)?dia:(emp.horasEntrada||[])).filter(h=>/^\d{1,2}:\d{2}$/.test(h)); if(!hs.length) return null;
   const base=inicioDia(claveDia(ts)); let mejor=null;
   hs.forEach(h=>{ const [H,M]=h.split(':').map(Number), t=base+H*3600000+M*60000; if(Math.abs(t-ts)<=2*3600000 && (mejor==null || Math.abs(t-ts)<Math.abs(mejor-ts))) mejor=t; });
   return mejor;
@@ -1317,7 +1318,7 @@ function pintarEmpleados(){
     return `<tr><td><b>${esc(e.nombre)}</b>${p.nombreCompleto?`<div class="sub" style="margin:0;font-size:.8rem">${esc(p.nombreCompleto)}</div>`:''}</td>
      <td>${esc(p.puesto||'—')}</td><td>${esc(lugaresDe(e).join(', ')||'—')}</td>
      <td>${p.telefono?`<a href="tel:${esc(p.telefono)}">${esc(p.telefono)}</a>`:'—'}</td>
-     <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}${e.contarDesdeHorario&&(e.horasEntrada||[]).length?`<div class="sub" style="margin:0;font-size:.78rem">Entrada ${e.horasEntrada.join(' y ')}</div>`:''}</td>
+     <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}${e.contarDesdeHorario&&(e.horasEntrada||[]).length?`<div class="sub" style="margin:0;font-size:.78rem">Entrada ${e.horasEntrada.join(' y ')}${Object.entries(e.horasEntradaDia||{}).map(([d,h])=>' · '+['D','L','M','X','J','V','S'][d]+' '+h.join(' y ')).join('')}</div>`:''}</td>
      <td class="num">${(()=>{ const y=new Date().getFullYear(), u=vacacionesUsadas(p,AUSENCIAS[id],y), t=vacCorresponden(p,y); return `quedan <b>${t-u}</b> de ${t}`; })()}</td>
      <td>${e.activo===false?'<span class="flag">Baja</span>':'<span class="flag admin">Activo</span>'}</td>
      <td class="num"><button class="btn peq" data-ed="${id}">Ver perfil</button></td></tr>`;}).join('') : '<tr><td class="sub">Aún no hay empleados.</td></tr>';
@@ -1358,6 +1359,12 @@ function formEmpleado(id){
       <div><label>Hora de entrada mañana</label><input id="em-h1" type="time" value="${esc((e.horasEntrada||[])[0]||'')}"></div>
       <div><label>Hora de entrada tarde <span style="font-weight:400">(si hace jornada partida)</span></label><input id="em-h2" type="time" value="${esc((e.horasEntrada||[])[1]||'')}"></div>
     </div>
+    <details style="margin-top:10px" ${Object.keys(e.horasEntradaDia||{}).length?'open':''}><summary style="cursor:pointer;color:var(--azul2);font-weight:600;font-size:.9rem">Algún día entra a otra hora (p. ej. sábados)</summary>
+      <p class="sub" style="font-size:.8rem;margin:6px 0">Rellena solo los días que sean distintos. Los que dejes vacíos usan las horas de arriba.</p>
+      <table style="width:auto">${DIAS_SEM.map(([n,l])=>{ const v=(e.horasEntradaDia||{})[n]||[]; return `<tr><td style="padding:4px 10px 4px 0"><b>${['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][n]}</b></td>
+        <td style="padding:4px"><input type="time" data-hd="${n}" data-i="0" value="${esc(v[0]||'')}" style="width:auto"></td>
+        <td style="padding:4px"><input type="time" data-hd="${n}" data-i="1" value="${esc(v[1]||'')}" style="width:auto" title="Tarde"></td></tr>`; }).join('')}</table>
+    </details>
     <p class="sub" style="font-size:.8rem;margin:4px 0 0">Ej.: entrada a las 10:30. Si ficha a las 10:20, cuenta desde las 10:30. Si ficha a las 10:35, cuenta desde las 10:35 (menos el margen). La salida siempre cuenta a la hora real, así que si se queda más tiempo, se le suma. Se aplica a los fichajes que haga a partir de ahora.</p>
 
     <div class="seccion">Datos personales</div>
@@ -1477,8 +1484,10 @@ function formEmpleado(id){
     if(!lugs.length) return g('#em-err').textContent='Asigna al menos un lugar de trabajo';
     const mg=Math.max(0,Math.min(30,Math.round(numero(g('#em-margen').value)||0)));
     const horasEnt=[g('#em-h1').value, g('#em-h2').value].filter(Boolean);
-    if(g('#em-desde').checked && !horasEnt.length) return g('#em-err').textContent='Pon al menos una hora de entrada';
-    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg, horasEntrada:horasEnt, contarDesdeHorario:g('#em-desde').checked};
+    const horasDia={}; m.el.querySelectorAll('[data-hd]').forEach(x=>{ if(x.value){ (horasDia[x.dataset.hd]=horasDia[x.dataset.hd]||[])[+x.dataset.i]=x.value; } });
+    Object.keys(horasDia).forEach(k=>{ horasDia[k]=horasDia[k].filter(Boolean); });
+    if(g('#em-desde').checked && !horasEnt.length && !Object.keys(horasDia).length) return g('#em-err').textContent='Pon al menos una hora de entrada';
+    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg, horasEntrada:horasEnt, horasEntradaDia:horasDia, contarDesdeHorario:g('#em-desde').checked};
     if(pin){ o.pin=await hashPin(pin,nid); o.pinProvisional=true; }
     const perfil={}; CAMPOS_PERFIL.forEach(k=>{ const val=g('#pf-'+k).value.trim(); if(val) perfil[k]=val; });
     if(perfil.dni) perfil.dni=perfil.dni.toUpperCase().replace(/[\s-]/g,'');
