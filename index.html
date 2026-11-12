@@ -161,6 +161,16 @@ tr.det td{background:#f8fafc}
 .aviso-coin{background:#fde8e8;color:#8a1f1f;border-radius:8px;padding:6px 10px;font-size:.85rem;margin-top:8px}
 .pedir{background:var(--fondo);border-radius:12px;padding:14px;margin-top:14px}
 
+.lienzo-firma{width:100%;height:170px;border:1.5px dashed #9aa4b1;border-radius:12px;background:#fff;touch-action:none;display:block}
+.doc-previa{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 16px;font-size:.9rem;line-height:1.6;max-height:42vh;overflow:auto}
+.doc-previa .firma-doc{display:none}
+.etq.firmado{background:var(--verde)}.etq.sinfirmar{background:#e09b1a}
+#print .hoja-doc{padding:70px 60px;font-size:15px;line-height:2;text-align:justify;font-family:Arial,Helvetica,sans-serif}
+#print .hoja-doc p{text-indent:60px;margin:0 0 18px}
+#print .firma-doc{margin-top:70px;text-align:center}
+#print .firma-doc img{max-height:110px;max-width:320px;display:block;margin:10px auto}
+#print .hueco-firma{height:110px}
+
 /* ---------- MÓVIL ---------- */
 @media (max-width:600px){
   .cab{padding:12px 14px;gap:10px}
@@ -301,7 +311,7 @@ tr.det td{background:#f8fafc}
     <div class="tarjeta">
       <div class="fila-btn" style="margin-top:0;justify-content:space-between;align-items:center">
         <strong>Solicitudes de vacaciones</strong>
-        <div class="seg"><button data-solf="pendiente" class="act">Pendientes</button><button data-solf="todas">Todas</button></div>
+        <div class="seg"><button data-solf="pendiente" class="act">Pendientes</button><button data-solf="firmar">Por firmar</button><button data-solf="todas">Todas</button></div>
       </div>
       <div id="sol-lista" style="margin-top:14px"></div>
     </div>
@@ -425,7 +435,7 @@ async function hashPin(pin, sal){
 function crearLocal(){
   const KEY = 'fichaje_demo_v6';
   let d = null; try{ d = JSON.parse(lsGet(KEY)); }catch(e){}
-  const vacio = () => ({empleados:{},perfiles:{},ausencias:{},solicitudes:{},registros:{},config:{},auditoria:{}});
+  const vacio = () => ({empleados:{},perfiles:{},ausencias:{},solicitudes:{},firmas:{},firmasEstado:{},registros:{},config:{},auditoria:{}});
   d = d || vacio();
   const subs = new Set();
   const guardar = () => { lsSet(KEY, JSON.stringify(d)); subs.forEach(f=>f()); };
@@ -447,10 +457,15 @@ function crearLocal(){
     leerAusenciasDe(id){ return Promise.resolve(JSON.parse(JSON.stringify((d.ausencias||{})[id]||{}))); },
     guardarAusencia(id,o){ d.ausencias=d.ausencias||{}; const k=nid(); (d.ausencias[id]=d.ausencias[id]||{})[k]=o; guardar(); return Promise.resolve(k); },
     borrarAusencia(id,k){ if(d.ausencias&&d.ausencias[id]) delete d.ausencias[id][k]; guardar(); return Promise.resolve(); },
+    actualizarAusencia(id,k,pt){ const a=d.ausencias[id][k]; Object.entries(pt).forEach(([x,v])=>{ if(v==null) delete a[x]; else a[x]=v; }); guardar(); return Promise.resolve(); },
     leerSolicitudes(){ d.solicitudes=d.solicitudes||{}; return Promise.resolve(JSON.parse(JSON.stringify(d.solicitudes))); },
     leerSolicitudesDe(id){ return Promise.resolve(JSON.parse(JSON.stringify((d.solicitudes||{})[id]||{}))); },
     guardarSolicitud(id,o){ d.solicitudes=d.solicitudes||{}; const k=nid(); (d.solicitudes[id]=d.solicitudes[id]||{})[k]=o; guardar(); return Promise.resolve(k); },
-    actualizarSolicitud(id,k,pt){ Object.assign(d.solicitudes[id][k],pt); guardar(); return Promise.resolve(); },
+    actualizarSolicitud(id,k,pt){ const a=d.solicitudes[id][k]; Object.entries(pt).forEach(([x,v])=>{ if(v==null) delete a[x]; else a[x]=v; }); guardar(); return Promise.resolve(); },
+    firmar(id,k,o){ d.firmas=d.firmas||{}; d.firmasEstado=d.firmasEstado||{}; (d.firmas[id]=d.firmas[id]||{})[k]=o; (d.firmasEstado[id]=d.firmasEstado[id]||{})[k]={ts:o.ts}; guardar(); return Promise.resolve(); },
+    leerFirmasEstado(){ return Promise.resolve(JSON.parse(JSON.stringify(d.firmasEstado||{}))); },
+    leerFirmasEstadoDe(id){ return Promise.resolve(JSON.parse(JSON.stringify((d.firmasEstado||{})[id]||{}))); },
+    leerFirma(id,k){ return Promise.resolve(((d.firmas||{})[id]||{})[k]||null); },
     leerConfig(){ return Promise.resolve({...d.config}); },
     guardarConfig(p){ Object.assign(d.config,p); guardar(); return Promise.resolve(); },
     nuevoRegistro(o){ const k=nid(); d.registros[k]={...o, ts:o.ts||Date.now()}; guardar(); return Promise.resolve(k); },
@@ -494,10 +509,15 @@ function crearFirebase(cfg){
     leerAusenciasDe(id){ return R('ausencias/'+id).once('value').then(s=>s.val()||{}); },
     guardarAusencia(id,o){ const r=R('ausencias/'+id).push(); return r.set(o).then(()=>r.key); },
     borrarAusencia(id,k){ return R('ausencias/'+id+'/'+k).remove(); },
+    actualizarAusencia(id,k,pt){ return R('ausencias/'+id+'/'+k).update(pt); },
     leerSolicitudes(){ return R('solicitudes').once('value').then(s=>s.val()||{}); },
     leerSolicitudesDe(id){ return R('solicitudes/'+id).once('value').then(s=>s.val()||{}); },
     guardarSolicitud(id,o){ const r=R('solicitudes/'+id).push(); return r.set(o).then(()=>r.key); },
     actualizarSolicitud(id,k,pt){ return R('solicitudes/'+id+'/'+k).update(pt); },
+    firmar(id,k,o){ return R('firmas/'+id+'/'+k).set(o).then(()=>R('firmasEstado/'+id+'/'+k).set({ts:o.ts})); },
+    leerFirmasEstado(){ return R('firmasEstado').once('value').then(s=>s.val()||{}); },
+    leerFirmasEstadoDe(id){ return R('firmasEstado/'+id).once('value').then(s=>s.val()||{}); },
+    leerFirma(id,k){ return R('firmas/'+id+'/'+k).once('value').then(s=>s.val()); },
     leerConfig(){ return R('config').once('value').then(s=>s.val()||{}); },
     guardarConfig(p){ return R('config').update(p); },
     nuevoRegistro(o){
@@ -616,8 +636,59 @@ function textoDias(p, a){
   const lab=diasQueCuentan(p,a.desde,a.hasta);
   return lab+' día'+(lab!==1?'s':'')+' laborable'+(lab!==1?'s':'')+(lab!==nat?` <span style="color:var(--gris)">(${nat} naturales; no cuentan domingos/días libres ni festivos)</span>`:'');
 }
+// Si la ausencia indica de qué año son las vacaciones (a.anio), todos sus días cuentan para ese año aunque se disfruten en otro
 function vacacionesUsadas(p, aus, year){
-  return Object.values(aus||{}).filter(a=>a.tipo==='vacaciones').reduce((t,a)=>t+diasQueCuentan(p,a.desde,a.hasta,year),0);
+  return Object.values(aus||{}).filter(a=>a.tipo==='vacaciones').reduce((t,a)=>t+(a.anio ? (Number(a.anio)===year ? diasQueCuentan(p,a.desde,a.hasta) : 0) : diasQueCuentan(p,a.desde,a.hasta,year)),0);
+}
+const anioVac = a => Number(a.anio) || +a.desde.slice(0,4);
+
+/* ---------- Documento de vacaciones para firmar ---------- */
+const MESES_DOC=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+function diasDelDocumento(p,a){   // en laborables, solo los días que cuentan; en naturales, todos
+  const lab=p.vacComputo==='laborables', dias=diasTrabajo(p), fest=festivosSet(), out=[];
+  for(let d=inicioDia(a.desde); d<=inicioDia(a.hasta); d=sumarDia(d)){ const dt=new Date(d); if(!lab || (dias.includes(dt.getDay()) && !fest.has(claveDia(d)))) out.push(dt); }
+  return out;
+}
+function textoFechasDoc(fechas){
+  const grupos=[]; fechas.forEach(f=>{ const k=f.getFullYear()+'-'+f.getMonth(); let g=grupos[grupos.length-1]; if(!g||g.k!==k){ g={k,mes:f.getMonth(),anio:f.getFullYear(),dias:[]}; grupos.push(g);} g.dias.push(f.getDate()); });
+  const varios=new Set(grupos.map(g=>g.anio)).size>1;
+  const partes=grupos.map(g=>{ const consec=g.dias.every((d,i)=>i===0||d===g.dias[i-1]+1);
+    const n = (consec && g.dias.length>7) ? 'del '+g.dias[0]+' al '+g.dias[g.dias.length-1] : (g.dias.length>1 ? g.dias.slice(0,-1).join(', ')+' y '+g.dias[g.dias.length-1] : String(g.dias[0]));
+    return n+' de '+MESES_DOC[g.mes]+(varios?' de '+g.anio:''); });
+  return partes.length>1 ? partes.slice(0,-1).join(', ')+' y '+partes[partes.length-1] : (partes[0]||'');
+}
+const fechaDoc = ts => { const d=new Date(ts); return d.getDate()+' de '+MESES_DOC[d.getMonth()]+' de '+d.getFullYear(); };
+const lugarDoc = emp => (lugaresDe(emp||{})[0]==='Valladolid') ? 'Valladolid' : 'Salamanca';
+function docVacacionesHTML({nombre, nif, aus, perfil, emp, firmaImg, fechaTs}){
+  const dias=diasDelDocumento(perfil,aus), N=esc((nombre||'').toUpperCase());
+  return `<div class="hoja-doc">
+    <p>Por medio del presente declaro yo, <b>${N}</b>, ${nif?'con NIF <b>'+esc(/^\d{8}[A-Z]$/.test(nif)?nif.slice(0,8)+'-'+nif.slice(8):nif)+'</b>, ':''}como trabajador que soy de la empresa <b><u>COLCHONERÍA BLÁZQUEZ S.L.</u></b>, que disfrutaré los días ${esc(textoFechasDoc(dias))} de las vacaciones correspondientes al año ${anioVac(aus)}.</p>
+    <p>Y para que así conste y surta los efectos oportunos, firmo el presente documento en ${lugarDoc(emp)} a ${fechaDoc(fechaTs||Date.now())}.</p>
+    <div class="firma-doc"><div>Conforme:</div>${firmaImg?`<img src="${firmaImg}" alt="Firma">`:'<div class="hueco-firma"></div>'}<div>Fdo.: ${N}</div></div>
+  </div>`;
+}
+function docDeVacaciones(id, a){   // documento para imprimir y firmar en papel, con la fecha de hoy
+  const e=EMPLEADOS[id]||{nombre:a.nombre||''}, p=PERFILES[id]||{};
+  return docVacacionesHTML({nombre:p.nombreCompleto||e.nombre, nif:(p.dni||'').toUpperCase(), aus:a, perfil:p, emp:e, fechaTs:Date.now()});
+}
+function imprimirDoc(html){
+  $('#print').innerHTML=html; document.body.classList.add('imprimiendo');
+  setTimeout(()=>{ window.print(); document.body.classList.remove('imprimiendo'); }, 150);
+}
+// Panel de firma con el dedo o el ratón
+function panelFirma(contenedor){
+  contenedor.innerHTML='<canvas class="lienzo-firma"></canvas><div class="sub" style="font-size:.8rem;margin:4px 0 0;display:flex;justify-content:space-between"><span>Firma con el dedo o con el ratón</span><button class="btn peq" type="button" data-borrar-firma>Borrar</button></div>';
+  const cv=contenedor.querySelector('canvas'), ctx=cv.getContext('2d'); let pint=false, trazos=0;
+  const ajustar=()=>{ const r=cv.getBoundingClientRect(), k=window.devicePixelRatio||1; cv.width=r.width*k; cv.height=r.height*k; ctx.setTransform(k,0,0,k,0,0); ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#1d2b6b'; };
+  setTimeout(ajustar,30);
+  const pos=e=>{ const r=cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+  cv.addEventListener('pointerdown',e=>{ const er=contenedor.parentElement.querySelector('.msg-err'); if(er) er.textContent=''; pint=true; cv.setPointerCapture(e.pointerId); const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y); trazos++; e.preventDefault(); });
+  cv.addEventListener('pointermove',e=>{ if(!pint) return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); });
+  ['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,()=>{ pint=false; }));
+  contenedor.querySelector('[data-borrar-firma]').onclick=()=>{ ctx.clearRect(0,0,cv.width,cv.height); trazos=0; };
+  return { vacia:()=>trazos===0, imagen:()=>{ // recorta y reduce para que ocupe poco
+      const o=document.createElement('canvas'); o.width=Math.min(600,cv.width); o.height=Math.round(cv.height*o.width/cv.width);
+      o.getContext('2d').drawImage(cv,0,0,o.width,o.height); return o.toDataURL('image/png'); } };
 }
 const fCortaISO = s => new Date(inicioDia(s)).toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
 const ESTADOS_SOL = {pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rechazada', cancelada:'Cancelada'};
@@ -648,7 +719,7 @@ const ACCIONES = {fuera:['entrada'], dentro:['pausa_inicio','salida'], pausa:['p
 const TXT_ESTADO = {fuera:'Fuera', dentro:'Trabajando', pausa:'En pausa'};
 
 /* ------------------------- ESTADO GLOBAL ------------------------- */
-let EMPLEADOS = {}, PERFILES = {}, AUSENCIAS = {}, SOLICITUDES = {}, CONFIG = {}, REG_HOY = [], diaEscucha = null, desEscuchaHoy = null;
+let EMPLEADOS = {}, PERFILES = {}, AUSENCIAS = {}, SOLICITUDES = {}, FIRMAS = {}, CONFIG = {}, REG_HOY = [], diaEscucha = null, desEscuchaHoy = null;
 let tiendaTablet = lsGet('fichaje_tienda') || '';
 const intentos = {};   // id -> {n, hasta}
 
@@ -673,10 +744,10 @@ function abrirModal(html, ancho){
   return m;
 }
 /* Confirmación propia (no depende de las ventanas del navegador, que se pueden bloquear) */
-function confirmar(texto, boton='Sí, borrar'){
+function confirmar(texto, boton='Sí, borrar', titulo='¿Seguro?'){
   return new Promise(res=>{
-    const m=abrirModal(`<h3>¿Seguro?</h3><p class="sub">${esc(texto)}</p>
-      <div class="fila-btn"><button class="btn" data-no>Cancelar</button><button class="btn peligro" data-si>${esc(boton)}</button></div>`);
+    const m=abrirModal(`<h3>${esc(titulo)}</h3><p class="sub">${esc(texto)}</p>
+      <div class="fila-btn"><button class="btn" data-no>${titulo==='¿Seguro?'?'Cancelar':'Ahora no'}</button><button class="btn ${titulo==='¿Seguro?'?'peligro':'pri'}" data-si>${esc(boton)}</button></div>`);
     let hecho=false; const fin=v=>{ if(hecho) return; hecho=true; m.cerrar(); res(v); };
     m.el.addEventListener('click',e=>{ if(e.target.dataset.si!=null) fin(true); if(e.target.dataset.no!=null) fin(false); });
     m.onTecla=e=>{ if(e.key==='Escape'){ e.preventDefault(); fin(false); } else if(e.key==='Enter'){ e.preventDefault(); fin(true); } };
@@ -913,7 +984,7 @@ function abrirAdmin(){
   buscar(); pintarResumen(); tocarAdmin();
 }
 function salirAdmin(){
-  clearTimeout(timerAdmin); cerrarTodo(); PERFILES={}; AUSENCIAS={}; SOLICITUDES={};
+  clearTimeout(timerAdmin); cerrarTodo(); PERFILES={}; AUSENCIAS={}; SOLICITUDES={}; FIRMAS={};
   if (DB.salir) DB.salir();   // cierra la sesión de administrador: el aparato vuelve a ser solo para fichar
   $('#admin').classList.add('oculto'); $('#kiosco').classList.remove('oculto'); pintarKiosco();
 }
@@ -1074,6 +1145,7 @@ async function misVacaciones(id){
         <div><label>Desde</label><input type="date" id="pv-desde"></div>
         <div><label>Hasta</label><input type="date" id="pv-hasta"></div>
       </div>
+      <div id="pv-anio-box"><label>Son vacaciones del año</label><select id="pv-anio" style="width:auto">${[new Date().getFullYear()-1,new Date().getFullYear(),new Date().getFullYear()+1].map(y=>`<option ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}</select></div>
       <div id="pv-prev" class="sub" style="margin:6px 0 0;font-size:.85rem"></div>
       <input id="pv-nota" placeholder="Comentario (opcional)" style="margin-top:8px">
       <div class="msg-err" id="pv-err" style="text-align:left"></div>
@@ -1084,11 +1156,12 @@ async function misVacaciones(id){
   m.autoCerrar(120);
   const previa=()=>{ const de=m.el.querySelector('#pv-desde').value, ha=m.el.querySelector('#pv-hasta').value||de, out=m.el.querySelector('#pv-prev');
     if(!de||ha<de){ out.innerHTML=''; return; }
-    const tipo=m.el.querySelector('#pv-tipo').value, yy=+de.slice(0,4);
+    const tipo=m.el.querySelector('#pv-tipo').value, yy=+m.el.querySelector('#pv-anio').value;
+    m.el.querySelector('#pv-anio-box').style.display = tipo==='vacaciones'?'':'none';
     let txt='Serían <b>'+textoDias(perfil,{desde:de,hasta:ha})+'</b>';
-    if(tipo==='vacaciones'){ const q=vacCorresponden(perfil,yy)-vacacionesUsadas(perfil,aus,yy)-diasQueCuentan(perfil,de,ha,yy); txt+=` · te quedarían <b>${q}</b> días en ${yy}`+(q<0?' <span style="color:var(--rojo)">(te pasas)</span>':''); }
+    if(tipo==='vacaciones'){ const q=vacCorresponden(perfil,yy)-vacacionesUsadas(perfil,aus,yy)-diasQueCuentan(perfil,de,ha); txt+=` · te quedarían <b>${q}</b> días en ${yy}`+(q<0?' <span style="color:var(--rojo)">(te pasas)</span>':''); }
     out.innerHTML=txt; };
-  ['#pv-desde','#pv-hasta','#pv-tipo'].forEach(x=>m.el.querySelector(x).addEventListener('change',previa));
+  ['#pv-desde','#pv-hasta','#pv-tipo','#pv-anio'].forEach(x=>m.el.querySelector(x).addEventListener('change',previa));
   const pintarSols=()=>{
     const l=Object.entries(sols||{}).filter(([,a])=>a.estado==='pendiente' || a.hasta>=hoyStr() || (a.respondida||0)>Date.now()-30*864e5).sort((a,b)=>b[1].creada-a[1].creada);
     m.el.querySelector('.mv-sols').innerHTML = l.length ? '<strong style="display:block;margin-top:14px">Mis solicitudes</strong><ul class="aus-lista">'+l.map(([k,a])=>
@@ -1100,10 +1173,12 @@ async function misVacaciones(id){
   const pintar=()=>{
     m.el.querySelector('.mv-y').textContent=year;
     const u=vacacionesUsadas(perfil,aus,year), t=vacCorresponden(perfil,year), hoy=hoyStr();
-    const l=Object.values(aus||{}).filter(a=>a.desde.slice(0,4)<=String(year) && a.hasta.slice(0,4)>=String(year)).sort((a,b)=>a.desde.localeCompare(b.desde));
-    const filas = l.length ? l.map(a=>{
+    const l=Object.entries(aus||{}).filter(([,a])=>a.anio ? Number(a.anio)===year : (a.desde.slice(0,4)<=String(year) && a.hasta.slice(0,4)>=String(year))).sort((a,b)=>a[1].desde.localeCompare(b[1].desde));
+    const filas = l.length ? l.map(([k,a])=>{
       const est = a.hasta<hoy ? 'Disfrutadas' : a.desde>hoy ? 'Próximas' : 'Ahora';
-      return `<li><span class="tipo"><span class="etq ${a.tipo}">${TIPOS_AUS[a.tipo]}</span></span><span style="flex:1">${fd(a.desde)}${a.hasta!==a.desde?' → '+fd(a.hasta):''}<div class="sub" style="margin:0;font-size:.8rem">${textoDias(perfil,a)} · ${est}${a.nota?' · '+esc(a.nota):''}</div></span></li>`; }).join('')
+      const otroAnio = a.anio && Number(a.anio)!==+a.desde.slice(0,4) ? ` · vacaciones de ${a.anio}` : '';
+      const firma = a.tipo!=='vacaciones' ? '' : a.firmada ? `<span class="etq firmado" style="margin-left:6px">Firmadas ✓</span>` : `<span class="sub" style="margin:0;font-size:.75rem;text-align:right">Pendiente de firmar<br>en la oficina</span>`;
+      return `<li><span class="tipo"><span class="etq ${a.tipo}">${TIPOS_AUS[a.tipo]}</span></span><span style="flex:1">${fd(a.desde)}${a.hasta!==a.desde?' → '+fd(a.hasta):''}<div class="sub" style="margin:0;font-size:.8rem">${textoDias(perfil,a)} · ${est}${otroAnio}${a.nota?' · '+esc(a.nota):''}</div></span>${firma}</li>`; }).join('')
       : '<li class="sub">No hay vacaciones ni ausencias apuntadas este año.</li>';
     m.el.querySelector('.mv-cuerpo').innerHTML=`<div class="ficha-res"><div>Te corresponden ${year}<b>${t} días</b></div><div>Apuntadas<b>${u} días</b></div><div>Te quedan<b>${t-u} días</b></div></div>
       <p class="sub" style="font-size:.78rem;margin:4px 0 0">Días ${perfil.vacComputo==='laborables'?'laborables':'naturales'}. ${esc(explicaVac(perfil,year))}.</p>
@@ -1125,7 +1200,7 @@ async function misVacaciones(id){
       if(Object.values(aus||{}).some(a=>a.desde<=ha && a.hasta>=de)) return err.textContent='Ya tienes vacaciones o ausencias apuntadas en esas fechas';
       if(Object.values(sols||{}).some(a=>a.estado==='pendiente' && a.desde<=ha && a.hasta>=de)) return err.textContent='Ya tienes una solicitud pendiente en esas fechas';
       if(!diasQueCuentan(perfil,de,ha)) return err.textContent='En esas fechas no tienes ningún día de trabajo';
-      const o={tipo:g('#pv-tipo').value, desde:de, hasta:ha, estado:'pendiente', creada:Date.now(), nombre:emp.nombre}; const nota=g('#pv-nota').value.trim(); if(nota) o.nota=nota;
+      const o={tipo:g('#pv-tipo').value, desde:de, hasta:ha, estado:'pendiente', creada:Date.now(), nombre:emp.nombre}; if(o.tipo==='vacaciones') o.anio=+g('#pv-anio').value; const nota=g('#pv-nota').value.trim(); if(nota) o.nota=nota;
       e.target.disabled=true;
       const k=await DB.guardarSolicitud(id,o); sols=sols||{}; sols[k]=o;
       await DB.auditar({accion:'solicitud de vacaciones', empId:id, ...o});
@@ -1411,6 +1486,8 @@ function formEmpleado(id){
       <div><label>Hasta</label><input type="date" id="au-hasta"></div>
       <div><button class="btn pri" data-aus-add>Añadir</button></div>
     </div>
+    <div style="margin-top:6px"><label style="display:inline;margin-right:8px">Si son vacaciones, ¿de qué año?</label><select id="au-anio" style="width:auto"><option value="">Del año de las fechas</option>${[new Date().getFullYear()-1,new Date().getFullYear(),new Date().getFullYear()+1].map(y=>`<option>${y}</option>`).join('')}</select>
+    </div>
     <div id="au-prev" class="sub" style="margin:6px 0 0;font-size:.85rem"></div>
     <input id="au-nota" placeholder="Nota (opcional)" style="margin-top:8px">
     <div class="msg-err" id="au-err"></div>`:''}
@@ -1441,10 +1518,17 @@ function formEmpleado(id){
     const l=Object.entries(aus).sort((a,b)=>b[1].desde.localeCompare(a[1].desde));
     const fd=s=>new Date(inicioDia(s)).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
     m.el.querySelector('#pf-aus').innerHTML = l.length ? l.map(([k,a])=>{
-      return `<li><span class="tipo"><span class="etq ${a.tipo}">${TIPOS_AUS[a.tipo]}</span></span><span style="flex:1">${fd(a.desde)}${a.hasta!==a.desde?' → '+fd(a.hasta):''} · ${textoDias(pv,a)}${a.nota?`<div class="sub" style="margin:0;font-size:.8rem">${esc(a.nota)}</div>`:''}</span><button class="btn peq peligro" data-aus-del="${k}">🗑 Borrar</button></li>`; }).join('')
+      return `<li><span class="tipo"><span class="etq ${a.tipo}">${TIPOS_AUS[a.tipo]}</span></span><span style="flex:1">${fd(a.desde)}${a.hasta!==a.desde?' → '+fd(a.hasta):''} · ${textoDias(pv,a)}${a.anio && Number(a.anio)!==+a.desde.slice(0,4) ? ` · <b>vacaciones de ${a.anio}</b>` : ''}${a.nota?`<div class="sub" style="margin:0;font-size:.8rem">${esc(a.nota)}</div>`:''}${a.tipo==='vacaciones'?`<label class="check" style="margin:4px 0 0;font-size:.85rem"><input type="checkbox" data-ausfirm="${k}" ${a.firmada?'checked':''}><span>${a.firmada?'Firmadas en papel el '+new Date(a.firmada).toLocaleDateString('es-ES'):'Firmadas en papel'}</span></label>`:''}</span>${a.tipo==='vacaciones'?`<button class="btn peq" data-doc="${k}">📄 Documento</button>`:''}<button class="btn peq peligro" data-aus-del="${k}">🗑 Borrar</button></li>`; }).join('')
       : '<li class="sub">Sin vacaciones ni ausencias registradas.</li>';
   };
   pintarAus();
+  m.el.querySelector('#pf-aus') && m.el.querySelector('#pf-aus').addEventListener('change', async ev=>{
+    const k=ev.target.dataset.ausfirm; if(!k) return; const a=AUSENCIAS[id][k], v=ev.target.checked?Date.now():null;
+    await DB.actualizarAusencia(id,k,{firmada:v}); if(v) a.firmada=v; else delete a.firmada;
+    if(a.solicitud && (SOLICITUDES[id]||{})[a.solicitud]){ await DB.actualizarSolicitud(id,a.solicitud,{firmada:v}); if(v) SOLICITUDES[id][a.solicitud].firmada=v; else delete SOLICITUDES[id][a.solicitud].firmada; }
+    await DB.auditar({accion:v?'vacaciones firmadas en papel':'quitar marca de firmadas', empId:id, desde:a.desde, hasta:a.hasta});
+    pintarAus(); pintarSolicitudes();
+  });
   ['#pf-vacComputo','#pf-vacAnuales','#pf-alta','#pf-bajaContrato','#pf-dias','#au-desde','#au-hasta'].forEach(sel=>{ const el=m.el.querySelector(sel); if(el) el.addEventListener('change',()=>{ pintarAus(); previaAus(); }); });
   if(id){
     const n=new Date(), l=lunesDe(n);
@@ -1472,10 +1556,18 @@ function formEmpleado(id){
       if(!de) return g('#au-err').textContent='Pon la fecha de inicio';
       if(ha<de) return g('#au-err').textContent='La fecha final es anterior a la inicial';
       const o={tipo:g('#au-tipo').value, desde:de, hasta:ha}; const nota=g('#au-nota').value.trim(); if(nota) o.nota=nota;
+      if(o.tipo==='vacaciones' && g('#au-anio').value) o.anio=+g('#au-anio').value;
       const k=await DB.guardarAusencia(id,o); (AUSENCIAS[id]=AUSENCIAS[id]||{})[k]=o;
       await DB.auditar({accion:'añadir ausencia', empId:id, ...o});
       g('#au-desde').value=g('#au-hasta').value=g('#au-nota').value=''; g('#au-err').textContent=''; g('#au-prev').innerHTML='';
       pintarAus(); pintarEmpleados(); pintarResumen(); return;
+    }
+    if(ev.target.dataset.doc){
+      const k=ev.target.dataset.doc, a=(AUSENCIAS[id]||{})[k], pv=perfilVivo();
+      const nombre=m.el.querySelector('#pf-nombreCompleto').value.trim()||e.nombre, nif=m.el.querySelector('#pf-dni').value.trim().toUpperCase();
+      if(!nif && !await confirmar('Este empleado no tiene DNI/NIE en su ficha. El documento saldrá sin NIF.','Sacarlo igualmente')) return;
+      imprimirDoc(docVacacionesHTML({nombre, nif, aus:a, perfil:pv, emp:EMPLEADOS[id]||e, fechaTs:Date.now()}));
+      return;
     }
     if(ev.target.dataset.ausDel){
       const k=ev.target.dataset.ausDel, a=(AUSENCIAS[id]||{})[k]; if(!a) return;
@@ -1587,11 +1679,12 @@ function pintarSolicitudes(){
   const todas=[]; Object.entries(SOLICITUDES||{}).forEach(([id,ss])=>Object.entries(ss||{}).forEach(([k,a])=>todas.push({id,k,...a})));
   const pend=todas.filter(a=>a.estado==='pendiente').length;
   const bd=$('#sol-badge'); bd.textContent=pend; bd.classList.toggle('oculto',!pend);
-  const l=todas.filter(a=>solFiltro==='todas' || a.estado==='pendiente').sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1) || a.desde.localeCompare(b.desde));
-  if(!l.length){ $('#sol-lista').innerHTML=`<p class="sub">${solFiltro==='pendiente'?'No hay solicitudes pendientes.':'Todavía no hay solicitudes.'}</p>`; return; }
+  const porFirmar=a=>a.estado==='aprobada' && a.tipo==='vacaciones' && !a.firmada;
+  const l=todas.filter(a=>solFiltro==='todas' || (solFiltro==='firmar' ? porFirmar(a) : a.estado==='pendiente')).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1) || a.desde.localeCompare(b.desde));
+  if(!l.length){ $('#sol-lista').innerHTML=`<p class="sub">${solFiltro==='pendiente'?'No hay solicitudes pendientes.':solFiltro==='firmar'?'No hay vacaciones pendientes de firmar.':'Todavía no hay solicitudes.'}</p>`; return; }
   $('#sol-lista').innerHTML=l.map(a=>{
-    const p=PERFILES[a.id]||{}, e=EMPLEADOS[a.id]||{nombre:a.nombre}, yy=+a.desde.slice(0,4);
-    const cuenta=diasQueCuentan(p,a.desde,a.hasta,yy), quedan=vacCorresponden(p,yy)-vacacionesUsadas(p,AUSENCIAS[a.id],yy);
+    const p=PERFILES[a.id]||{}, e=EMPLEADOS[a.id]||{nombre:a.nombre}, yy=anioVac(a);
+    const cuenta=diasQueCuentan(p,a.desde,a.hasta), quedan=vacCorresponden(p,yy)-vacacionesUsadas(p,AUSENCIAS[a.id],yy);
     const coin=a.estado==='pendiente'?coincidencias(a.id,a.desde,a.hasta,AUSENCIAS,SOLICITUDES):[];
     return `<div class="sol ${a.estado==='pendiente'?'pend':''}">
       <div class="cab-sol"><div><b>${esc(e.nombre)}</b> · ${TIPOS_AUS[a.tipo]} <span class="etq ${a.estado}" style="margin-left:6px">${ESTADOS_SOL[a.estado]}</span></div>
@@ -1602,21 +1695,39 @@ function pintarSolicitudes(){
       ${a.respuesta?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Tu respuesta: ${esc(a.respuesta)}</div>`:''}
       ${coin.length?`<div class="aviso-coin">⚠ Coincide con compañeros de su lugar de trabajo:<br>${coin.map(esc).join('<br>')}</div>`:''}
       ${a.estado==='pendiente'?`<div class="fila-btn" style="margin-top:10px"><input placeholder="Comentario para el empleado (opcional)" data-resp="${a.id}|${a.k}" style="flex:1;min-width:180px"><button class="btn peligro" data-rech="${a.id}|${a.k}">Rechazar</button><button class="btn pri" data-apro="${a.id}|${a.k}">Aprobar</button></div>`:''}
+      ${a.tipo==='vacaciones' && a.estado==='aprobada' ? `<div class="fila-btn" style="margin-top:10px;justify-content:space-between;align-items:center">
+        <label class="check" style="margin:0"><input type="checkbox" data-firmada="${a.id}|${a.k}" ${a.firmada?'checked':''}><span>${a.firmada?'Firmadas en papel el '+new Date(a.firmada).toLocaleDateString('es-ES'):'Firmadas en papel'}</span></label>
+        <button class="btn" data-docsol="${a.id}|${a.k}">📄 Documento para firmar</button></div>` : ''}
     </div>`; }).join('');
 }
+$('#sol-lista').addEventListener('change', async ev=>{
+  const ref=ev.target.dataset.firmada; if(!ref) return;
+  const [id,k]=ref.split('|'), a=SOLICITUDES[id][k], v=ev.target.checked?Date.now():null;
+  await DB.actualizarSolicitud(id,k,{firmada:v}); a.firmada=v||undefined; if(!v) delete a.firmada;
+  if(a.ausencia && (AUSENCIAS[id]||{})[a.ausencia]){ await DB.actualizarAusencia(id,a.ausencia,{firmada:v}); if(v) AUSENCIAS[id][a.ausencia].firmada=v; else delete AUSENCIAS[id][a.ausencia].firmada; }
+  await DB.auditar({accion:v?'vacaciones firmadas en papel':'quitar marca de firmadas', empId:id, desde:a.desde, hasta:a.hasta});
+  toast(v?'Marcadas como firmadas':'Marca de firma quitada', true); pintarSolicitudes();
+});
 $('#sol-lista').addEventListener('click', async ev=>{
+  if(ev.target.dataset.docsol){ const [id,k]=ev.target.dataset.docsol.split('|'); return imprimirSolicitud(id, SOLICITUDES[id][k]); }
   const t=ev.target, ref=t.dataset.apro||t.dataset.rech; if(!ref) return;
   const [id,k]=ref.split('|'), a=SOLICITUDES[id][k], e=EMPLEADOS[id]||{nombre:a.nombre};
   const resp=(document.querySelector(`[data-resp="${ref}"]`)||{}).value?.trim()||'';
   const aprobar=!!t.dataset.apro;
   if(!await confirmar(`${aprobar?'Aprobar':'Rechazar'} ${TIPOS_AUS[a.tipo].toLowerCase()} de ${e.nombre} del ${a.desde.split('-').reverse().join('/')} al ${a.hasta.split('-').reverse().join('/')}.`, aprobar?'Sí, aprobar':'Sí, rechazar')) return;
   const pt={estado:aprobar?'aprobada':'rechazada', respondida:Date.now()}; if(resp) pt.respuesta=resp;
-  if(aprobar){ const au={tipo:a.tipo, desde:a.desde, hasta:a.hasta, ...(a.nota?{nota:a.nota}:{}), solicitud:k}; const ak=await DB.guardarAusencia(id,au); (AUSENCIAS[id]=AUSENCIAS[id]||{})[ak]=au; pt.ausencia=ak; }
+  if(aprobar){ const au={tipo:a.tipo, desde:a.desde, hasta:a.hasta, ...(a.nota?{nota:a.nota}:{}), ...(a.anio?{anio:a.anio}:{}), solicitud:k}; const ak=await DB.guardarAusencia(id,au); (AUSENCIAS[id]=AUSENCIAS[id]||{})[ak]=au; pt.ausencia=ak; }
   await DB.actualizarSolicitud(id,k,pt); Object.assign(a,pt);
   await DB.auditar({accion:aprobar?'aprobar vacaciones':'rechazar vacaciones', empId:id, desde:a.desde, hasta:a.hasta, respuesta:resp});
   toast(aprobar?`Aprobadas. Ya están en las vacaciones de ${esc(e.nombre)}.`:'Solicitud rechazada', true);
   pintarSolicitudes(); pintarEmpleados(); pintarResumen();
+  if(aprobar && a.tipo==='vacaciones' && await confirmar(`Si quieres, imprime ahora el documento para que ${e.nombre} lo firme. También puedes sacarlo más tarde con el botón 📄.`,'Imprimir ahora','Vacaciones aprobadas')) imprimirSolicitud(id,a);
 });
+async function imprimirSolicitud(id, a){
+  const p=PERFILES[id]||{};
+  if(!p.dni && !await confirmar('Este empleado no tiene DNI/NIE en su ficha. El documento saldrá sin NIF.','Sacarlo igualmente')) return;
+  imprimirDoc(docDeVacaciones(id, a));
+}
 
 /* Ajustes */
 $('#s-guardar-tienda').onclick=()=>{ tiendaTablet=$('#s-tienda').value; lsSet('fichaje_tienda',tiendaTablet); toast('Lugar de este dispositivo: '+(tiendaTablet||'sin asignar'), true); };
