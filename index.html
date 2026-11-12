@@ -171,6 +171,40 @@ tr.det td{background:#f8fafc}
 #print .firma-doc img{max-height:110px;max-width:320px;display:block;margin:10px auto}
 #print .hueco-firma{height:110px}
 
+/* ---------- CALENDARIO ---------- */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .dsem{font-size:.75rem;font-weight:700;color:var(--gris);text-align:center;padding:4px 0;text-transform:uppercase}
+.cal .dia{background:#fff;border:1px solid var(--linea);border-radius:8px;min-height:92px;padding:4px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cal .dia.vacio{background:transparent;border:0}
+.cal .dia.dom{background:#f6f7f9}
+.cal .dia.fest{background:#fff3f3;border-color:#f5c2c2}
+.cal .dia.hoy{border:2px solid var(--azul2)}
+.cal .num{font-size:.78rem;font-weight:700;color:var(--gris);display:flex;justify-content:space-between;gap:4px}
+.cal .num small{font-weight:400;color:var(--rojo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-cal{display:block;font-size:.72rem;line-height:1.3;padding:2px 6px;border-radius:6px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.chip-cal.vacaciones{background:#2f6fbf}.chip-cal.asuntos{background:#7c5cc4}.chip-cal.baja{background:#6b7685}.chip-cal.permiso{background:#0f8a8a}.chip-cal.otro{background:#8a8f98}
+.chip-cal.pend-cal{background:#fff;color:#a35d00;border:1.5px dashed #e09b1a}
+.cal-leyenda{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:.8rem}
+.cal-leyenda .chip-cal{display:inline-block}
+.cal-fest-ley{background:#fff3f3;border:1px solid #f5c2c2;border-radius:6px;padding:2px 8px;color:var(--rojo)}
+/* ---------- CENTROS ---------- */
+.centros{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.centro{background:#fff;border-radius:var(--radio);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.dibujo-centro{display:block;width:100%;height:auto;max-height:150px;margin:-4px 0 10px;background:linear-gradient(#eaf4fd,#f7fbff);border-radius:10px}
+.dir-centro{display:block;font-size:.85rem;color:var(--azul2);text-decoration:none;margin:2px 0 4px}
+.dir-centro:hover{text-decoration:underline}
+.dir-centro.sin{color:var(--gris)}
+.centro h3{margin:0 0 2px;font-size:1.1rem;display:flex;justify-content:space-between;align-items:center}
+.centro h3 .cuenta{font-size:.8rem;font-weight:600;background:#e5f6ec;color:#14532d;border-radius:20px;padding:3px 10px}
+.centro h3 .cuenta.cero{background:var(--fondo);color:var(--gris)}
+.centro h4{margin:14px 0 6px;font-size:.78rem;text-transform:uppercase;color:var(--gris);letter-spacing:.03em}
+.persona{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linea);font-size:.92rem;cursor:pointer}
+.persona:last-child{border-bottom:0}
+.persona .pt{width:10px;height:10px;border-radius:50%;background:#c9d1db;flex:none}
+.persona .pt.dentro{background:var(--verde)}.persona .pt.pausa{background:var(--ambar)}.persona .pt.aus{background:#2f6fbf}.persona .pt.otro{background:#8fb3e0}
+.persona .det{margin-left:auto;font-size:.78rem;color:var(--gris);text-align:right}
+@media (max-width:600px){ .cal .dia{min-height:70px;padding:2px} .chip-cal{font-size:.62rem;padding:1px 3px} .cal .num small{display:none} }
+
 /* ---------- MÓVIL ---------- */
 @media (max-width:600px){
   .cab{padding:12px 14px;gap:10px}
@@ -239,6 +273,8 @@ tr.det td{background:#f8fafc}
     <button data-tab="informe">Informe mensual</button>
     <button data-tab="empleados">Empleados</button>
     <button data-tab="solicitudes">Solicitudes<span class="badge oculto" id="sol-badge"></span></button>
+    <button data-tab="calendario">Calendario</button>
+    <button data-tab="centros">Centros</button>
     <button data-tab="ajustes">Ajustes</button>
   </div>
 
@@ -306,6 +342,29 @@ tr.det td{background:#f8fafc}
     </div>
   </div>
 
+  <!-- Calendario de vacaciones -->
+  <div class="panel oculto" data-panel="calendario">
+    <div class="tarjeta">
+      <div class="res-barra">
+        <div class="nav"><button class="btn" id="cal-ant">◀</button><strong id="cal-tit"></strong><button class="btn" id="cal-sig">▶</button></div>
+        <select id="cal-lugar" style="width:auto"></select>
+        <label class="check" style="margin:0"><input type="checkbox" id="cal-pend" checked><span>Ver solicitudes pendientes</span></label>
+        <button class="btn peq" id="cal-hoy">Mes actual</button>
+      </div>
+    </div>
+    <div class="tarjeta" style="padding:10px">
+      <div class="cal" id="cal-grid"></div>
+      <div class="cal-leyenda"><span class="etq vacaciones">Vacaciones</span><span class="etq asuntos">Asuntos propios</span><span class="etq baja">Baja</span><span class="etq permiso">Permiso</span><span class="chip-cal pend-cal">Pendiente de aprobar</span><span class="cal-fest-ley">Festivo</span></div>
+    </div>
+    <div class="tarjeta"><strong>Resumen del mes</strong><div id="cal-res" style="margin-top:8px"></div></div>
+  </div>
+
+  <!-- Centros de trabajo -->
+  <div class="panel oculto" data-panel="centros">
+    <p class="sub" style="margin:0 0 12px">Quién está ahora en cada centro (según los fichajes de hoy) y quién tiene asignado cada uno. Se actualiza solo.</p>
+    <div class="centros" id="centros-grid"></div>
+  </div>
+
   <!-- Solicitudes de vacaciones -->
   <div class="panel oculto" data-panel="solicitudes">
     <div class="tarjeta">
@@ -332,6 +391,11 @@ tr.det td{background:#f8fafc}
       <textarea id="s-lugares" rows="6"></textarea>
       <p class="sub" style="margin-top:6px;font-size:.85rem">Si cambias el nombre de un lugar, revisa los empleados que lo tenían asignado.</p>
       <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-lugares">Guardar lugares</button></div>
+    </div>
+    <div class="tarjeta">
+      <strong>Direcciones de los centros</strong>
+      <div id="s-dirs" class="grid2" style="margin-top:4px"></div>
+      <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-dirs">Guardar direcciones</button></div>
     </div>
     <div class="tarjeta">
       <strong>Fecha en que empezáis a fichar</strong>
@@ -399,6 +463,8 @@ const RAIZ = 'fichaje';                       // nodo raíz dentro de la base de
 const TIENDAS = ['Mirat','Carmelitas','Anaya','Almacén','Valladolid'];   // lista inicial; se puede cambiar en Ajustes
 const LUGARES = () => (CONFIG && Array.isArray(CONFIG.lugares) && CONFIG.lugares.length) ? CONFIG.lugares : TIENDAS;
 const lugaresDe = e => Array.isArray(e.lugares) && e.lugares.length ? e.lugares : (e.tienda ? [e.tienda] : []);
+const DIRECCIONES_INICIALES = {'Valladolid':'Paseo de Zorrilla, 15, Valladolid'};
+const direccionDe = L => ((CONFIG && CONFIG.direcciones) || {})[L] ?? DIRECCIONES_INICIALES[L] ?? '';
 const opcLugares = () => LUGARES().map(t=>`<option>${esc(t)}</option>`).join('');
 const PIN_INICIAL = '0000';                    // PIN provisional de todos los empleados nuevos (lo cambian al entrar)
 const MAX_INTENTOS = 5, BLOQUEO_SEG = 30;      // protección contra probar PINs
@@ -816,7 +882,7 @@ function tic(){
 function escucharHoy(){
   diaEscucha = hoyStr();
   if (desEscuchaHoy) desEscuchaHoy();
-  desEscuchaHoy = DB.escuchar(inicioDia(diaEscucha), finDia(diaEscucha), regs=>{ REG_HOY=regs; pintarKiosco(); });
+  desEscuchaHoy = DB.escuchar(inicioDia(diaEscucha), finDia(diaEscucha), regs=>{ REG_HOY=regs; pintarKiosco(); if(typeof pintarCentros==='function' && !$('#admin').classList.contains('oculto')) pintarCentros(); });
 }
 function regsHoyDe(id){ return REG_HOY.filter(r=>r.empId===id); }
 
@@ -977,7 +1043,7 @@ function tocarAdmin(){ clearTimeout(timerAdmin); timerAdmin=setTimeout(salirAdmi
 function abrirAdmin(){
   $('#kiosco').classList.add('oculto'); $('#admin').classList.remove('oculto');
   rellenarSelects(); $('#s-tienda').value = tiendaTablet;
-  Promise.all([DB.leerPerfiles(), DB.leerAusencias(), DB.leerConfig(), DB.leerSolicitudes()]).then(([p,a,c,sl])=>{ PERFILES=p; AUSENCIAS=a; CONFIG=c; SOLICITUDES=sl; rellenarSelects(); pintarEmpleados(); pintarResumen(); pintarSolicitudes(); });
+  Promise.all([DB.leerPerfiles(), DB.leerAusencias(), DB.leerConfig(), DB.leerSolicitudes()]).then(([p,a,c,sl])=>{ PERFILES=p; AUSENCIAS=a; CONFIG=c; SOLICITUDES=sl; rellenarSelects(); pintarEmpleados(); pintarResumen(); pintarSolicitudes(); pintarCalendario(); pintarCentros(); });
   $('#s-demo').classList.toggle('oculto', DB.modo!=='demo');
   $('#s-pinadmin').classList.toggle('oculto', DB.modo==='firebase');
   if(!$('#f-desde').value){ rango('mes'); }
@@ -993,6 +1059,8 @@ $('#a-salir').addEventListener('click', salirAdmin);
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('act', x===b));
   document.querySelectorAll('[data-panel]').forEach(p=>p.classList.toggle('oculto', p.dataset.panel!==b.dataset.tab));
+  if(b.dataset.tab==='calendario') pintarCalendario();
+  if(b.dataset.tab==='centros') pintarCentros();
 }));
 
 function empOrdenados(){ return Object.entries(EMPLEADOS).sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es')); }
@@ -1005,9 +1073,11 @@ function rellenarSelects(){
   $('#f-tienda').innerHTML = '<option value="">Todos</option>'+opcLugares(); $('#f-tienda').value=v3||'';
   const v4=$('#r-lugar').value; $('#r-lugar').innerHTML = '<option value="">Todos los lugares</option>'+opcLugares(); $('#r-lugar').value=v4||'';
   $('#s-tienda').innerHTML = '<option value="">— Sin asignar —</option>'+opcLugares(); $('#s-tienda').value=tiendaTablet;
+  const v5=$('#cal-lugar').value; $('#cal-lugar').innerHTML='<option value="">Todos los centros</option>'+opcLugares(); $('#cal-lugar').value=v5||'';
   $('#s-lugares').value = LUGARES().join('\n');
   $('#s-festivos').value = (CONFIG.festivosTxt || '');
   $('#s-inicio').value = CONFIG.inicioFichaje || '';
+  $('#s-dirs').innerHTML = LUGARES().map(L=>`<div><label>${esc(L)}</label><input data-dir="${esc(L)}" value="${esc(direccionDe(L))}" placeholder="Calle, número, ciudad"></div>`).join('');
   if(!$('#i-mes').value){ const n=new Date(); $('#i-mes').value=n.getFullYear()+'-'+pad(n.getMonth()+1); }
 }
 
@@ -1672,6 +1742,132 @@ function antig(alta){
   return (y?y+' año'+(y>1?'s':'')+' ':'')+(mm||!y?mm+' mes'+(mm!==1?'es':''):'');
 }
 
+/* Calendario mensual de vacaciones y ausencias (admin) */
+let calRef=new Date();
+$('#cal-ant').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()-1,1); pintarCalendario(); };
+$('#cal-sig').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()+1,1); pintarCalendario(); };
+$('#cal-hoy').onclick=()=>{ calRef=new Date(); pintarCalendario(); };
+$('#cal-lugar').onchange=()=>pintarCalendario(); $('#cal-pend').onchange=()=>pintarCalendario();
+function pintarCalendario(){
+  const y=calRef.getFullYear(), mo=calRef.getMonth(), nd=new Date(y,mo+1,0).getDate(), ini=claveDia(new Date(y,mo,1).getTime()), fin=claveDia(new Date(y,mo,nd).getTime());
+  const t=new Date(y,mo,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'}); $('#cal-tit').textContent=t[0].toUpperCase()+t.slice(1);
+  const lug=$('#cal-lugar').value, verPend=$('#cal-pend').checked, fest=festivosSet();
+  const nombresFest={}; (CONFIG.festivosTxt||'').split('\n').forEach(l=>{ const m=l.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\s*(.*)$/); if(m) nombresFest[m[3]+'-'+pad(m[2])+'-'+pad(m[1])]=m[4]; });
+  const emps=empOrdenados().filter(([,e])=>e.activo!==false && (!lug || lugaresDe(e).includes(lug)));
+  const items=[];   // {id,nombre,tipo,desde,hasta,pend}
+  emps.forEach(([id,e])=>{
+    Object.values(AUSENCIAS[id]||{}).forEach(a=>{ if(a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta}); });
+    if(verPend) Object.values(SOLICITUDES[id]||{}).forEach(a=>{ if(a.estado==='pendiente' && a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta,pend:true}); });
+  });
+  let h=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="dsem">${d}</div>`).join('');
+  const hueco=(new Date(y,mo,1).getDay()+6)%7; for(let i=0;i<hueco;i++) h+='<div class="dia vacio"></div>';
+  for(let d=1; d<=nd; d++){
+    const k=y+'-'+pad(mo+1)+'-'+pad(d), dw=new Date(y,mo,d).getDay();
+    const del=items.filter(it=>it.desde<=k && it.hasta>=k).sort((a,b)=>(a.pend?1:0)-(b.pend?1:0) || a.nombre.localeCompare(b.nombre,'es'));
+    h+=`<div class="dia ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''}"><div class="num"><span>${d}</span>${fest.has(k)?`<small title="${esc(nombresFest[k]||'Festivo')}">${esc(nombresFest[k]||'Festivo')}</small>`:''}</div>
+      ${del.map(it=>`<span class="chip-cal ${it.pend?'pend-cal':it.tipo}" data-emp="${it.id}" title="${esc(it.nombre)} · ${TIPOS_AUS[it.tipo]}${it.pend?' (pendiente)':''}">${esc(it.nombre)}</span>`).join('')}</div>`;
+  }
+  $('#cal-grid').innerHTML=h;
+  // resumen: días del mes por persona
+  const res=emps.map(([id,e])=>{ const p=PERFILES[id]||{}; let dv=0, otros=0;
+    Object.values(AUSENCIAS[id]||{}).forEach(a=>{ if(a.desde<=fin && a.hasta>=ini){ const de=a.desde<ini?ini:a.desde, ha=a.hasta>fin?fin:a.hasta, n=diasQueCuentan(p,de,ha); if(a.tipo==='vacaciones') dv+=n; else otros+=n; } });
+    return {id,nombre:e.nombre,dv,otros}; }).filter(r=>r.dv||r.otros);
+  $('#cal-res').innerHTML = res.length ? '<table>'+'<tr><th>Empleado</th><th class="num">Vacaciones</th><th class="num">Otras ausencias</th></tr>'+res.map(r=>`<tr class="persona-fila" data-emp="${r.id}" style="cursor:pointer"><td>${esc(r.nombre)}</td><td class="num">${r.dv||'—'}</td><td class="num">${r.otros||'—'}</td></tr>`).join('')+'</table>' : '<p class="sub" style="margin:0">Nadie tiene vacaciones ni ausencias este mes.</p>';
+}
+['#cal-grid','#cal-res'].forEach(s=>$(s).addEventListener('click',e=>{ const t=e.target.closest('[data-emp]'); if(t) formEmpleado(t.dataset.emp); }));
+
+/* Dibujos de los centros (estilo dibujo animado) */
+const ESTILO_TIENDA = {
+  mirat:      {pared:'#f6e3c4', toldo:'#d64545', marco:'#7a4a2a', cartel:'#3b2a1f'},
+  carmelitas: {pared:'#eedcec', toldo:'#2f9d63', marco:'#5b3b5a', cartel:'#2d4a3a'},
+  anaya:      {pared:'#d6e8fb', toldo:'#2f6fbf', marco:'#1d3557', cartel:'#1d3557'},
+  valladolid: {pared:'#f3d3b8', toldo:'#e08a1a', marco:'#7a4a2a', cartel:'#5a2e12', pisos:true}
+};
+const PALETA_EXTRA=[{pared:'#e3e7ee',toldo:'#6b7685',marco:'#3b4552',cartel:'#3b4552'},{pared:'#e9f2df',toldo:'#5a8f29',marco:'#3a5a1c',cartel:'#3a5a1c'}];
+const sinTildes = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function dibujoCentro(nombre, i){
+  const n=sinTildes(nombre||'');
+  if(/almac|reparto|furgo/.test(n)) return dibujoFurgoneta();
+  const c=ESTILO_TIENDA[n] || PALETA_EXTRA[i%PALETA_EXTRA.length];
+  const rayas=[...Array(10)].map((_,k)=>`<rect x="${40+k*22}" y="${c.pisos?62:40}" width="11" height="18" fill="${k%2?'#fff':c.toldo}"/>`).join('');
+  const ondas=[...Array(10)].map((_,k)=>`<path d="M${40+k*22} ${c.pisos?80:58} q11 10 22 0" fill="${k%2?'#fff':c.toldo}" stroke="${c.toldo}" stroke-width="1"/>`).join('');
+  const y0=c.pisos?22:0, alto=c.pisos?150:128;
+  return `<svg viewBox="0 0 300 ${alto}" class="dibujo-centro" role="img" aria-label="Dibujo de la tienda ${esc(nombre)}">
+    <rect x="0" y="${alto-12}" width="300" height="12" fill="#cfd5dd"/>
+    <rect x="28" y="6" width="244" height="${alto-18}" rx="6" fill="${c.pared}" stroke="${c.marco}" stroke-width="3"/>
+    <rect x="22" y="2" width="256" height="10" rx="4" fill="${c.marco}"/>
+    ${c.pisos?`<rect x="60" y="18" width="34" height="22" rx="3" fill="#bfe0f5" stroke="${c.marco}" stroke-width="2.5"/><rect x="133" y="18" width="34" height="22" rx="3" fill="#bfe0f5" stroke="${c.marco}" stroke-width="2.5"/><rect x="206" y="18" width="34" height="22" rx="3" fill="#bfe0f5" stroke="${c.marco}" stroke-width="2.5"/>`:''}
+    <rect x="70" y="${16+y0}" width="160" height="22" rx="5" fill="${c.cartel}"/>
+    <text x="150" y="${32+y0}" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="700" font-size="13" fill="#fff" letter-spacing="1">${esc((nombre||'').toUpperCase())}</text>
+    ${rayas}${ondas}
+    <rect x="44" y="${72+y0}" width="140" height="${alto-96-y0}" rx="4" fill="#bfe0f5" stroke="${c.marco}" stroke-width="3"/>
+    <path d="M52 ${80+y0} l18 0 M52 ${86+y0} l10 0" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <rect x="62" y="${alto-40}" width="104" height="14" rx="5" fill="#fff" stroke="#8aa0b8" stroke-width="2"/>
+    <rect x="62" y="${alto-34}" width="104" height="8" rx="3" fill="#e8eef5"/>
+    <rect x="58" y="${alto-46}" width="22" height="9" rx="4" fill="#fff" stroke="#8aa0b8" stroke-width="1.5"/>
+    <path d="M70 ${alto-56} l6 -6 l6 6" fill="none" stroke="${c.toldo}" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="150" y="${alto-50}" text-anchor="middle" font-size="12" fill="${c.marco}" opacity=".55">z z</text>
+    <rect x="198" y="${72+y0}" width="50" height="${alto-84-y0}" rx="4" fill="${c.marco}"/>
+    <rect x="204" y="${78+y0}" width="38" height="${(alto-84-y0)/2-8}" rx="3" fill="#bfe0f5"/>
+    <circle cx="240" cy="${alto-38}" r="3" fill="#ffd34d"/>
+  </svg>`;
+}
+function dibujoFurgoneta(){
+  return `<svg viewBox="0 0 300 128" class="dibujo-centro" role="img" aria-label="Dibujo de la furgoneta del almacén">
+    <rect x="0" y="116" width="300" height="12" fill="#cfd5dd"/>
+    <path d="M60 18 h120 a8 8 0 0 1 8 8 v4 h-136 v-4 a8 8 0 0 1 8 -8z" fill="#fff" stroke="#8aa0b8" stroke-width="2.5"/>
+    <path d="M70 18 v12 M90 18 v12 M110 18 v12 M130 18 v12 M150 18 v12 M170 18 v12" stroke="#d6e0ea" stroke-width="2"/>
+    <path d="M120 14 l0 18 M100 14 l0 18" stroke="#1d3557" stroke-width="2.5"/>
+    <path d="M34 34 h170 l36 0 q10 0 16 10 l20 30 q4 6 4 14 v14 q0 8 -8 8 H34 q-8 0 -8 -8 V42 q0 -8 8 -8z" fill="#ffcc1f" stroke="#a87b00" stroke-width="3"/>
+    <path d="M212 42 h26 q6 0 10 6 l14 22 h-50z" fill="#bfe0f5" stroke="#a87b00" stroke-width="2.5"/>
+    <path d="M208 34 v76" stroke="#a87b00" stroke-width="2.5"/>
+    <rect x="216" y="80" width="12" height="4" rx="2" fill="#a87b00"/>
+    <rect x="40" y="48" width="158" height="38" rx="6" fill="#fff6cf" stroke="#e0b200" stroke-width="2"/>
+    <text x="119" y="64" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="700" font-size="12" fill="#1d3557">COLCHONERÍA</text>
+    <text x="119" y="79" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="700" font-size="12" fill="#1d3557">BLÁZQUEZ</text>
+    <rect x="270" y="92" width="10" height="8" rx="3" fill="#fff3a8" stroke="#a87b00" stroke-width="2"/>
+    <rect x="22" y="96" width="10" height="7" rx="2" fill="#d64545"/>
+    <circle cx="74" cy="112" r="16" fill="#2b2f36"/><circle cx="74" cy="112" r="7" fill="#cfd5dd"/>
+    <circle cx="232" cy="112" r="16" fill="#2b2f36"/><circle cx="232" cy="112" r="7" fill="#cfd5dd"/>
+    <path d="M10 70 h14 M4 82 h18 M12 94 h10" stroke="#c3cad3" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* Centros de trabajo: quién está ahora en cada uno (admin) */
+function pintarCentros(){
+  if($('#admin').classList.contains('oculto')) return;
+  const hoy=hoyStr(), activos=empOrdenados().filter(([,e])=>e.activo!==false);
+  const info={};   // estado de hoy de cada empleado
+  activos.forEach(([id,e])=>{
+    const regs=REG_HOY.filter(r=>r.empId===id && !r.anulado), est=estadoActual(regs);
+    const ultEnt=[...regs].reverse().find(r=>r.tipo==='entrada');
+    const aus=Object.values(AUSENCIAS[id]||{}).find(a=>a.desde<=hoy && a.hasta>=hoy);
+    info[id]={est, donde: ultEnt ? (ultEnt.tienda || lugaresDe(e)[0] || '') : '', desde: ultEnt?ultEnt.ts:null, aus, trabajaHoy: diasTrabajo(PERFILES[id]||{}).includes(new Date().getDay()), regs};
+  });
+  const lugares=[...LUGARES()]; if(activos.some(([,e])=>!lugaresDe(e).length)) lugares.push('');
+  $('#centros-grid').innerHTML = lugares.map((L,iL)=>{
+    const aqui=activos.filter(([id])=>info[id].est!=='fuera' && info[id].donde===L);
+    const asignados=activos.filter(([,e])=> L ? lugaresDe(e).includes(L) : !lugaresDe(e).length);
+    const fila=(id,e,det,cls)=>`<div class="persona" data-emp="${id}"><span class="pt ${cls}"></span><span>${esc(e.nombre)}</span><span class="det">${det}</span></div>`;
+    const ahora = aqui.length ? aqui.map(([id,e])=>{ const i=info[id], cubre=L && !lugaresDe(e).includes(L);
+        return fila(id,e,(i.est==='pausa'?'En pausa · ':'')+'desde '+hhmm(i.desde)+(cubre?'<br><b style="color:#a35d00">cubriendo</b>':''), i.est); }).join('')
+      : '<p class="sub" style="margin:0;font-size:.85rem">Nadie fichado ahora mismo.</p>';
+    const asig = asignados.length ? asignados.map(([id,e])=>{ const i=info[id]; let det, cls='';
+        if(i.aus){ det=TIPOS_AUS[i.aus.tipo]+' hasta el '+i.aus.hasta.split('-').reverse().slice(0,2).join('/'); cls='aus'; }
+        else if(i.est!=='fuera' && i.donde===L){ det=i.est==='pausa'?'En pausa aquí':'Trabajando aquí'; cls=i.est; }
+        else if(i.est!=='fuera'){ det='Trabajando en '+esc(i.donde||'otro centro'); cls='otro'; }
+        else if(i.regs.some(r=>r.tipo==='salida')){ det='Ya ha salido'; }
+        else det = i.trabajaHoy ? 'Sin fichar' : 'Hoy no trabaja';
+        return fila(id,e,det,cls); }).join('')
+      : '<p class="sub" style="margin:0;font-size:.85rem">Sin empleados asignados.</p>';
+    const dir=L?direccionDe(L):'';
+    return `<div class="centro">${L?dibujoCentro(L,iL):''}<h3>${esc(L||'Sin centro asignado')}<span class="cuenta ${aqui.length?'':'cero'}">${aqui.length} ahora</span></h3>
+      ${L?(dir?`<a class="dir-centro" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dir)}" target="_blank" rel="noopener">📍 ${esc(dir)}</a>`:`<span class="dir-centro sin">📍 Sin dirección · añádela en Ajustes</span>`):''}
+      <h4>Ahora aquí</h4>${ahora}<h4>Asignados a este centro</h4>${asig}</div>`;
+  }).join('');
+}
+$('#centros-grid').addEventListener('click',e=>{ const t=e.target.closest('[data-emp]'); if(t) formEmpleado(t.dataset.emp); });
+
 /* Solicitudes de vacaciones (admin) */
 let solFiltro='pendiente';
 document.querySelectorAll('[data-solf]').forEach(b=>b.onclick=()=>{ solFiltro=b.dataset.solf; document.querySelectorAll('[data-solf]').forEach(x=>x.classList.toggle('act',x===b)); pintarSolicitudes(); });
@@ -1752,6 +1948,10 @@ $('#s-guardar-pin').onclick=async ()=>{
   $('#s-pin1').value=$('#s-pin2').value=''; toast('PIN de administración cambiado', true);
 };
 $('#s-reset').onclick=async ()=>{ if(await confirmar('Se borrarán todos los empleados, fichajes, vacaciones y ajustes de ejemplo de este navegador.','Sí, empezar en blanco')){ DB.reset(); lsSet('fichaje_sin_ejemplos','1'); location.reload(); } };
+$('#s-guardar-dirs').onclick=async ()=>{
+  const d={}; document.querySelectorAll('#s-dirs [data-dir]').forEach(i=>{ d[i.dataset.dir]=i.value.trim(); });
+  await DB.guardarConfig({direcciones:d}); CONFIG=await DB.leerConfig(); toast('Direcciones guardadas', true); pintarCentros();
+};
 $('#s-guardar-inicio').onclick=async ()=>{ await DB.guardarConfig({inicioFichaje:$('#s-inicio').value||null}); CONFIG=await DB.leerConfig(); toast('Guardado', true); pintarResumen(); };
 $('#s-horas0').onclick=async ()=>{ if(await confirmar('Se borrarán todos los fichajes de prueba y las horas previstas empezarán a contar desde hoy. Los empleados, sus fichas, vacaciones y ajustes se quedan como están.','Sí, poner a cero')){ DB.borrarFichajes(); await DB.guardarConfig({inicioFichaje:hoyStr()}); CONFIG=await DB.leerConfig(); $('#s-inicio').value=CONFIG.inicioFichaje; toast('Horas a cero. Se empieza a contar desde hoy.', true); buscar(); pintarResumen(); escucharHoy(); } };
 $('#s-ejemplos').onclick=async ()=>{ if(await confirmar('Se borrará lo que hayas metido y se cargarán otra vez los datos de ejemplo.','Sí, cargar ejemplos')){ DB.reset(); lsSet('fichaje_sin_ejemplos',''); location.reload(); } };
