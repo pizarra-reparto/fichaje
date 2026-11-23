@@ -165,7 +165,7 @@ tr.det td{background:#f8fafc}
 .doc-previa{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 16px;font-size:.9rem;line-height:1.6;max-height:42vh;overflow:auto}
 .doc-previa .firma-doc{display:none}
 .etq.firmado{background:var(--verde)}.etq.sinfirmar{background:#e09b1a}
-#print .hoja-doc{padding:70px 60px;font-size:15px;line-height:2;text-align:justify;font-family:Arial,Helvetica,sans-serif}
+#print .hoja-doc{page-break-after:always;padding:70px 60px;font-size:15px;line-height:2;text-align:justify;font-family:Arial,Helvetica,sans-serif}
 #print .hoja-doc p{text-indent:60px;margin:0 0 18px}
 #print .firma-doc{margin-top:70px;text-align:center}
 #print .firma-doc img{max-height:110px;max-width:320px;display:block;margin:10px auto}
@@ -187,6 +187,33 @@ tr.det td{background:#f8fafc}
 .cal-leyenda{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:.8rem}
 .cal-leyenda .chip-cal{display:inline-block}
 .cal-fest-ley{background:#fff3f3;border:1px solid #f5c2c2;border-radius:6px;padding:2px 8px;color:var(--rojo)}
+/* ---------- AÑO / COLORES ---------- */
+.anio{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.mini{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:8px;cursor:pointer}
+.mini:hover{border-color:var(--azul2)}
+.mini-tit{font-weight:700;font-size:.9rem;margin:0 0 4px;color:var(--azul)}
+.mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mini-ds{font-size:.62rem;color:var(--gris);text-align:center;font-weight:700}
+.md{height:30px;border-radius:4px;background:#f8fafc;font-size:.62rem;color:#56606d;padding:1px 2px;display:flex;flex-direction:column;overflow:hidden}
+.md.dom{background:#eef0f3}.md.fest{background:#ffe1e1;color:var(--rojo)}.md.hoy{outline:2px solid var(--azul2)}
+.md .barras{display:flex;flex-direction:column;gap:1px;margin-top:auto}
+.md .barras i{display:block;height:3px;border-radius:2px}
+.ley-per{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;margin-right:6px}
+.ley-per i{display:inline-block;width:14px;height:14px;border-radius:4px}
+.chip-cal.pend-cal{background:#fff;border:1.5px dashed}
+#print{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page apaisado{size:A4 landscape;margin:8mm}
+@media print{
+  #print .hoja-cal{font-family:Arial,Helvetica,sans-serif;padding:6px}
+  #print .hoja-cal.apaisado{page:apaisado}
+  #print .hoja-cal h1{font-size:16px;margin:0}
+  #print .sub-print{font-size:10px;color:#666;margin-bottom:8px}
+  #print .anio{grid-template-columns:repeat(4,1fr);gap:8px}
+  #print .mini{padding:4px;border-color:#bbb}
+  #print .md{height:22px}
+  #print .cal .dia{min-height:80px}
+  #print .cal-leyenda{margin-top:8px}
+}
 /* ---------- CENTROS ---------- */
 .centros{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .centro{background:#fff;border-radius:var(--radio);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
@@ -201,7 +228,7 @@ tr.det td{background:#f8fafc}
 .persona{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linea);font-size:.92rem;cursor:pointer}
 .persona:last-child{border-bottom:0}
 .persona .pt{width:10px;height:10px;border-radius:50%;background:#c9d1db;flex:none}
-.persona .pt.dentro{background:var(--verde)}.persona .pt.pausa{background:var(--ambar)}.persona .pt.aus{background:#2f6fbf}.persona .pt.otro{background:#8fb3e0}
+.persona .pt.dentro,.persona .pt.presente{background:var(--verde)}.persona .pt.pausa{background:var(--ambar)}.persona .pt.aus{background:#2f6fbf}.persona .pt.otro{background:#8fb3e0}
 .persona .det{margin-left:auto;font-size:.78rem;color:var(--gris);text-align:right}
 @media (max-width:600px){ .cal .dia{min-height:70px;padding:2px} .chip-cal{font-size:.62rem;padding:1px 3px} .cal .num small{display:none} }
 
@@ -346,22 +373,25 @@ tr.det td{background:#f8fafc}
   <div class="panel oculto" data-panel="calendario">
     <div class="tarjeta">
       <div class="res-barra">
+        <div class="seg" id="cal-modo"><button data-calm="mes" class="act">Mes</button><button data-calm="anio">Año</button></div>
         <div class="nav"><button class="btn" id="cal-ant">◀</button><strong id="cal-tit"></strong><button class="btn" id="cal-sig">▶</button></div>
         <select id="cal-lugar" style="width:auto"></select>
         <label class="check" style="margin:0"><input type="checkbox" id="cal-pend" checked><span>Ver solicitudes pendientes</span></label>
-        <button class="btn peq" id="cal-hoy">Mes actual</button>
+        <button class="btn peq" id="cal-hoy">Hoy</button>
+        <button class="btn peq pri" id="cal-print">🖨 Imprimir</button>
       </div>
     </div>
     <div class="tarjeta" style="padding:10px">
-      <div class="cal" id="cal-grid"></div>
-      <div class="cal-leyenda"><span class="etq vacaciones">Vacaciones</span><span class="etq asuntos">Asuntos propios</span><span class="etq baja">Baja</span><span class="etq permiso">Permiso</span><span class="chip-cal pend-cal">Pendiente de aprobar</span><span class="cal-fest-ley">Festivo</span></div>
+      <div id="cal-grid"></div>
+      <div class="cal-leyenda" id="cal-ley"></div>
     </div>
-    <div class="tarjeta"><strong>Resumen del mes</strong><div id="cal-res" style="margin-top:8px"></div></div>
+    <div class="tarjeta"><strong id="cal-res-tit">Resumen del mes</strong><div id="cal-res" style="margin-top:8px"></div></div>
   </div>
 
   <!-- Centros de trabajo -->
   <div class="panel oculto" data-panel="centros">
     <p class="sub" style="margin:0 0 12px">Quién está ahora en cada centro (según los fichajes de hoy) y quién tiene asignado cada uno. Se actualiza solo.</p>
+    <div id="centros-sinf"></div>
     <div class="centros" id="centros-grid"></div>
   </div>
 
@@ -449,7 +479,7 @@ const FIREBASE_CONFIG = {
   appId: "1:211437981374:web:3e5a3be8bcb979cf0d58ef"
 };
 // Datos de la ficha que necesitan ver los propios empleados (horas, vacaciones). El resto (DNI, dirección…) solo lo ve el administrador.
-const CAMPOS_LABORALES = ['puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','diasReparto','vacAnuales','vacComputo','horario'];
+const CAMPOS_LABORALES = ['vacPrevias','puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','diasReparto','vacAnuales','vacComputo','horario'];
 /* Ejemplo:
 const FIREBASE_CONFIG = {
   apiKey: "AIza...",
@@ -704,9 +734,34 @@ function textoDias(p, a){
 }
 // Si la ausencia indica de qué año son las vacaciones (a.anio), todos sus días cuentan para ese año aunque se disfruten en otro
 function vacacionesUsadas(p, aus, year){
-  return Object.values(aus||{}).filter(a=>a.tipo==='vacaciones').reduce((t,a)=>t+(a.anio ? (Number(a.anio)===year ? diasQueCuentan(p,a.desde,a.hasta) : 0) : diasQueCuentan(p,a.desde,a.hasta,year)),0);
+  return (Number((p.vacPrevias||{})[year])||0) + Object.values(aus||{}).filter(a=>a.tipo==='vacaciones').reduce((t,a)=>t+(a.anio ? (Number(a.anio)===year ? diasQueCuentan(p,a.desde,a.hasta) : 0) : diasQueCuentan(p,a.desde,a.hasta,year)),0);
 }
 const anioVac = a => Number(a.anio) || +a.desde.slice(0,4);
+// Año desde el que se llevan las vacaciones en la app (antes no hay datos para arrastrar días sobrantes)
+const anioInicioApp = () => (CONFIG && CONFIG.inicioFichaje) ? +CONFIG.inicioFichaje.slice(0,4) : new Date().getFullYear();
+// Reparte unas vacaciones entre años: primero gasta lo que le quede del año anterior y el resto va al año de las fechas.
+// Devuelve tramos [{anio, desde, hasta, dias}] (uno por año), para descontarlos y sacar un documento por cada uno.
+function repartoVacaciones(p, aus, desde, hasta){
+  const lab=p.vacComputo==='laborables', dias=diasTrabajo(p), fest=festivosSet(), y0=anioInicioApp();
+  const saldo={}, q=y=>{ if(saldo[y]===undefined) saldo[y]=vacCorresponden(p,y)-vacacionesUsadas(p,aus,y); return saldo[y]; };
+  const tramos=[]; let act=null;
+  for(let d=inicioDia(desde); d<=inicioDia(hasta); d=sumarDia(d)){
+    const k=claveDia(d), dt=new Date(d), Y=dt.getFullYear(), cuenta=!lab || (dias.includes(dt.getDay()) && !fest.has(k));
+    let anio = act ? act.anio : Y;
+    if(cuenta){ anio = (Y-1>=y0 && q(Y-1)>0) ? Y-1 : Y; saldo[anio]=q(anio)-1; }
+    else if(act && act.anio!==Y && Y>act.anio && !(Y-1>=y0 && q(Y-1)>0)) anio=Y;
+    if(!act || act.anio!==anio){ act={anio, desde:k, hasta:k, dias:0}; tramos.push(act); }
+    act.hasta=k; if(cuenta) act.dias++;
+  }
+  // los tramos sin días que cuenten se unen al siguiente (o al anterior)
+  for(let i=tramos.length-1;i>=0;i--){ const t=tramos[i]; if(t.dias===0 && tramos.length>1){ if(tramos[i+1]){ tramos[i+1].desde=t.desde; } else { tramos[i-1].hasta=t.hasta; } tramos.splice(i,1); } }
+  return tramos;
+}
+function textoReparto(p, aus, tramos, quien){   // "3 días de 2026 (te quedarán 0) y 2 de 2027 (te quedarán 28)"
+  const partes=tramos.map(t=>{ const q=vacCorresponden(p,t.anio)-vacacionesUsadas(p,aus,t.anio)-t.dias;
+    return `<b>${t.dias} día${t.dias!==1?'s':''} de ${t.anio}</b> (${quien} ${q} día${q!==1?'s':''}${q<0?' <span style="color:var(--rojo)">· se pasa</span>':''})`; });
+  return partes.length>1 ? partes.slice(0,-1).join(', ')+' y '+partes[partes.length-1] : (partes[0]||'');
+}
 
 /* ---------- Documento de vacaciones para firmar ---------- */
 const MESES_DOC=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
@@ -779,6 +834,15 @@ function inicioHorario(emp, ts){
   const base=inicioDia(claveDia(ts)); let mejor=null;
   hs.forEach(h=>{ const [H,M]=h.split(':').map(Number), t=base+H*3600000+M*60000; if(Math.abs(t-ts)<=2*3600000 && (mejor==null || Math.abs(t-ts)<Math.abs(mejor-ts))) mejor=t; });
   return mejor;
+}
+
+// Dónde está hoy (o en una fecha) alguien que no ficha: cambio de ese día > su semana habitual; nada si tiene ausencia
+function presenciaDe(id, fecha){
+  const e=EMPLEADOS[id]||{}; if(!e.sinFichaje) return null;
+  if(Object.values(AUSENCIAS[id]||{}).some(a=>a.desde<=fecha && a.hasta>=fecha)) return null;
+  const d=(e.presenciaDias||{})[fecha]; if(d!==undefined) return d==='no'?null:d;
+  if(festivosSet().has(fecha)) return null;
+  return (e.presenciaSemana||{})[new Date(inicioDia(fecha)).getDay()] || null;
 }
 
 const ACCIONES = {fuera:['entrada'], dentro:['pausa_inicio','salida'], pausa:['pausa_fin','salida']};
@@ -888,7 +952,7 @@ function regsHoyDe(id){ return REG_HOY.filter(r=>r.empId===id); }
 
 function pintarKiosco(){
   $('#k-tienda').textContent = tiendaTablet ? tiendaTablet : 'Registro de jornada';
-  const activos = Object.entries(EMPLEADOS).filter(([,e])=>e.activo!==false)
+  const activos = Object.entries(EMPLEADOS).filter(([,e])=>e.activo!==false && !e.sinFichaje)
     .sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es'));
   const avisos=[];
   if (errorCarga) avisos.push(`<div class="aviso err">${esc(errorCarga)}</div>`);
@@ -1215,7 +1279,6 @@ async function misVacaciones(id){
         <div><label>Desde</label><input type="date" id="pv-desde"></div>
         <div><label>Hasta</label><input type="date" id="pv-hasta"></div>
       </div>
-      <div id="pv-anio-box"><label>Son vacaciones del año</label><select id="pv-anio" style="width:auto">${[new Date().getFullYear()-1,new Date().getFullYear(),new Date().getFullYear()+1].map(y=>`<option ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}</select></div>
       <div id="pv-prev" class="sub" style="margin:6px 0 0;font-size:.85rem"></div>
       <input id="pv-nota" placeholder="Comentario (opcional)" style="margin-top:8px">
       <div class="msg-err" id="pv-err" style="text-align:left"></div>
@@ -1226,12 +1289,11 @@ async function misVacaciones(id){
   m.autoCerrar(120);
   const previa=()=>{ const de=m.el.querySelector('#pv-desde').value, ha=m.el.querySelector('#pv-hasta').value||de, out=m.el.querySelector('#pv-prev');
     if(!de||ha<de){ out.innerHTML=''; return; }
-    const tipo=m.el.querySelector('#pv-tipo').value, yy=+m.el.querySelector('#pv-anio').value;
-    m.el.querySelector('#pv-anio-box').style.display = tipo==='vacaciones'?'':'none';
+    const tipo=m.el.querySelector('#pv-tipo').value;
     let txt='Serían <b>'+textoDias(perfil,{desde:de,hasta:ha})+'</b>';
-    if(tipo==='vacaciones'){ const q=vacCorresponden(perfil,yy)-vacacionesUsadas(perfil,aus,yy)-diasQueCuentan(perfil,de,ha); txt+=` · te quedarían <b>${q}</b> días en ${yy}`+(q<0?' <span style="color:var(--rojo)">(te pasas)</span>':''); }
+    if(tipo==='vacaciones') txt+='.<br>Se descontarían: '+textoReparto(perfil, aus, repartoVacaciones(perfil,aus,de,ha), 'te quedarán');
     out.innerHTML=txt; };
-  ['#pv-desde','#pv-hasta','#pv-tipo','#pv-anio'].forEach(x=>m.el.querySelector(x).addEventListener('change',previa));
+  ['#pv-desde','#pv-hasta','#pv-tipo'].forEach(x=>m.el.querySelector(x).addEventListener('change',previa));
   const pintarSols=()=>{
     const l=Object.entries(sols||{}).filter(([,a])=>a.estado==='pendiente' || a.hasta>=hoyStr() || (a.respondida||0)>Date.now()-30*864e5).sort((a,b)=>b[1].creada-a[1].creada);
     m.el.querySelector('.mv-sols').innerHTML = l.length ? '<strong style="display:block;margin-top:14px">Mis solicitudes</strong><ul class="aus-lista">'+l.map(([k,a])=>
@@ -1270,7 +1332,7 @@ async function misVacaciones(id){
       if(Object.values(aus||{}).some(a=>a.desde<=ha && a.hasta>=de)) return err.textContent='Ya tienes vacaciones o ausencias apuntadas en esas fechas';
       if(Object.values(sols||{}).some(a=>a.estado==='pendiente' && a.desde<=ha && a.hasta>=de)) return err.textContent='Ya tienes una solicitud pendiente en esas fechas';
       if(!diasQueCuentan(perfil,de,ha)) return err.textContent='En esas fechas no tienes ningún día de trabajo';
-      const o={tipo:g('#pv-tipo').value, desde:de, hasta:ha, estado:'pendiente', creada:Date.now(), nombre:emp.nombre}; if(o.tipo==='vacaciones') o.anio=+g('#pv-anio').value; const nota=g('#pv-nota').value.trim(); if(nota) o.nota=nota;
+      const o={tipo:g('#pv-tipo').value, desde:de, hasta:ha, estado:'pendiente', creada:Date.now(), nombre:emp.nombre}; const nota=g('#pv-nota').value.trim(); if(nota) o.nota=nota;
       e.target.disabled=true;
       const k=await DB.guardarSolicitud(id,o); sols=sols||{}; sols[k]=o;
       await DB.auditar({accion:'solicitud de vacaciones', empId:id, ...o});
@@ -1369,7 +1431,7 @@ async function pintarResumen(){
   const porEmp={};
   regs.forEach(r=>{ const k=claveDia(r.ts); ((porEmp[r.empId]=porEmp[r.empId]||{})[k]=porEmp[r.empId][k]||[]).push(r); });
   const lug=$('#r-lugar').value;
-  const emps=empOrdenados().filter(([id,e])=>(e.activo!==false || porEmp[id]) && (!lug || lugaresDe(e).includes(lug)));
+  const emps=empOrdenados().filter(([id,e])=>((e.activo!==false && !e.sinFichaje) || porEmp[id]) && (!lug || lugaresDe(e).includes(lug)));
   if(!emps.length){ $('#t-resumen').innerHTML='<tr><td class="sub">No hay empleados.</td></tr>'; return; }
   const totCol=cols.map(()=>0); let totGen=0;
   const actual = cols[0].de<=hoyStr() && hoyStr()<=cols[cols.length-1].ha;
@@ -1428,7 +1490,7 @@ $('#i-gen').onclick=async ()=>{
   const ini=new Date(y,mo-1,1).getTime(), fin=new Date(y,mo,0,23,59,59,999).getTime(), nd=new Date(y,mo,0).getDate();
   const regs=(await DB.consultar(ini,fin)).filter(r=>!r.anulado);
   const sel=$('#i-emp').value;
-  let ids = sel ? [sel] : empOrdenados().filter(([id,e])=>e.activo!==false || regs.some(r=>r.empId===id)).map(([id])=>id);
+  let ids = sel ? [sel] : empOrdenados().filter(([id,e])=>(e.activo!==false && !e.sinFichaje) || regs.some(r=>r.empId===id)).map(([id])=>id);
   if(!ids.length) return toast('No hay empleados');
   const nomMes=new Date(y,mo-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
   let html='';
@@ -1467,7 +1529,7 @@ function pintarEmpleados(){
      <td>${p.telefono?`<a href="tel:${esc(p.telefono)}">${esc(p.telefono)}</a>`:'—'}</td>
      <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}${e.contarDesdeHorario&&(e.horasEntrada||[]).length?`<div class="sub" style="margin:0;font-size:.78rem">Entrada ${e.horasEntrada.join(' y ')}${Object.entries(e.horasEntradaDia||{}).map(([d,h])=>' · '+['D','L','M','X','J','V','S'][d]+' '+h.join(' y ')).join('')}</div>`:''}</td>
      <td class="num">${(()=>{ const y=new Date().getFullYear(), u=vacacionesUsadas(p,AUSENCIAS[id],y), t=vacCorresponden(p,y); return `quedan <b>${t-u}</b> de ${t}`; })()}</td>
-     <td>${e.activo===false?'<span class="flag">Baja</span>':'<span class="flag admin">Activo</span>'}</td>
+     <td>${e.activo===false?'<span class="flag">Baja</span>':'<span class="flag admin">Activo</span>'}${e.sinFichaje?'<span class="flag">No ficha</span>':''}</td>
      <td class="num"><button class="btn peq" data-ed="${id}">Ver perfil</button></td></tr>`;}).join('') : '<tr><td class="sub">Aún no hay empleados.</td></tr>';
 }
 $('#t-emp').addEventListener('click', e=>{ if(e.target.dataset.ed) formEmpleado(e.target.dataset.ed); });
@@ -1499,6 +1561,17 @@ function formEmpleado(id){
     <div class="grid2">
       <div><label>Margen de entrada (minutos)</label><input id="em-margen" type="number" min="0" max="30" step="1" value="${Number(e.margenEntrada)||''}" placeholder="0"></div>
       <div class="check" style="margin-top:34px"><input type="checkbox" id="em-act" ${e.activo!==false?'checked':''}><span>Activo</span></div>
+      <div><label>Color en el calendario</label><input type="color" id="em-color" value="${id?colorEmp(id):PALETA_PERSONAS[Object.keys(EMPLEADOS).length%PALETA_PERSONAS.length]}" style="height:42px;padding:4px"></div>
+    </div>
+    <div class="check" style="margin-top:12px"><input type="checkbox" id="em-sinf" ${e.sinFichaje?'checked':''}><span><b>No ficha</b> (solo se apunta en qué centro está cada día; no sale en la pantalla de fichar ni en las horas)</span></div>
+    <div id="em-sinf-box" style="${e.sinFichaje?'':'display:none'}">
+      <label>Dónde está normalmente cada día</label>
+      <table style="width:auto">${DIAS_SEM.map(([n])=>`<tr><td style="padding:3px 10px 3px 0"><b>${['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][n]}</b></td><td style="padding:3px"><select data-pres="${n}" style="width:auto"><option value="">No viene</option>${LUGARES().map(L=>`<option ${((e.presenciaSemana||{})[n]===L)?'selected':''}>${esc(L)}</option>`).join('')}</select></td></tr>`).join('')}</table>
+      <label>Cambios de días concretos</label>
+      <ul class="aus-lista" id="em-pres-lista"></ul>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="date" id="em-pres-f" style="width:auto"><select id="em-pres-l" style="width:auto"><option value="no">No está</option>${LUGARES().map(L=>`<option>${esc(L)}</option>`).join('')}</select><button class="btn peq" type="button" data-pres-add>Añadir</button></div>
+    </div>
+    <div>
     </div>
     <p class="sub" style="font-size:.8rem;margin:4px 0 0">Minutos que se le suman en cada entrada por lo que tarda en encender el ordenador o el móvil. Ej.: con 5 min, si ficha a las 16:30 cuenta desde las 16:25. Se aplica a los fichajes que haga a partir de ahora.</p>
     <div class="check" style="margin-top:14px"><input type="checkbox" id="em-desde" ${e.contarDesdeHorario?'checked':''}><span><b>Si llega antes de su hora de entrada, contar desde la hora de entrada</b></span></div>
@@ -1544,6 +1617,7 @@ function formEmpleado(id){
     <label>Horario habitual</label><input id="pf-horario" value="${v('horario')}" placeholder="L-V 10:00-14:00 y 17:00-20:30 · S 10:00-14:00">
     <div class="grid2">
       ${inp('vacAnuales','Vacaciones por año completo trabajado','type="number" min="0" max="60" placeholder="30"')}
+      <div><label>Días de ${anioInicioApp()} ya disfrutados antes de usar la app</label><input id="pf-vacPrev" type="number" min="0" max="60" value="${esc((p.vacPrevias||{})[anioInicioApp()]??'')}" placeholder="0"></div>
       <div><label>Se cuentan como</label><select id="pf-vacComputo"><option value="naturales">Días naturales</option><option value="laborables">Días laborables</option></select></div>
     </div>
 
@@ -1556,7 +1630,7 @@ function formEmpleado(id){
       <div><label>Hasta</label><input type="date" id="au-hasta"></div>
       <div><button class="btn pri" data-aus-add>Añadir</button></div>
     </div>
-    <div style="margin-top:6px"><label style="display:inline;margin-right:8px">Si son vacaciones, ¿de qué año?</label><select id="au-anio" style="width:auto"><option value="">Del año de las fechas</option>${[new Date().getFullYear()-1,new Date().getFullYear(),new Date().getFullYear()+1].map(y=>`<option>${y}</option>`).join('')}</select>
+    <div style="margin-top:6px"><label style="display:inline;margin-right:8px">Si son vacaciones, ¿de qué año?</label><select id="au-anio" style="width:auto"><option value="">Automático (primero lo que le quede del año anterior)</option><option value="fechas">Del año de las fechas</option>${[new Date().getFullYear()-1,new Date().getFullYear(),new Date().getFullYear()+1].map(y=>`<option>${y}</option>`).join('')}</select>
     </div>
     <div id="au-prev" class="sub" style="margin:6px 0 0;font-size:.85rem"></div>
     <input id="au-nota" placeholder="Nota (opcional)" style="margin-top:8px">
@@ -1572,13 +1646,23 @@ function formEmpleado(id){
     <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`, true);
   m.el.querySelector('#pf-contrato').value=p.contrato||'';
   m.el.querySelector('#pf-vacComputo').value=p.vacComputo||'naturales';
+  const presDias={...(e.presenciaDias||{})};
+  const pintarPres=()=>{ const hoyS=hoyStr(), l=Object.entries(presDias).filter(([f])=>f>=claveDia(Date.now()-30*864e5)).sort();
+    m.el.querySelector('#em-pres-lista').innerHTML = l.length ? l.map(([f,v])=>`<li><span style="flex:1">${fCortaISO(f)}${f<hoyS?' <span class="sub" style="margin:0">(pasado)</span>':''}</span><b>${v==='no'?'No está':esc(v)}</b><button class="btn peq peligro" type="button" data-pres-del="${f}">🗑</button></li>`).join('') : '<li class="sub">Sin cambios apuntados.</li>'; };
+  pintarPres();
+  m.el.querySelector('#em-sinf').addEventListener('change',ev=>{ m.el.querySelector('#em-sinf-box').style.display=ev.target.checked?'':'none'; });
+  m.el.addEventListener('click',ev=>{
+    if(ev.target.dataset.presAdd!=null){ const f=m.el.querySelector('#em-pres-f').value; if(!f) return; presDias[f]=m.el.querySelector('#em-pres-l').value; m.el.querySelector('#em-pres-f').value=''; pintarPres(); }
+    if(ev.target.dataset.presDel){ delete presDias[ev.target.dataset.presDel]; pintarPres(); }
+  });
   m.el.querySelector('#pf-rep-on').addEventListener('change',e=>{ m.el.querySelector('#pf-rep-box').style.display=e.target.checked?'':'none'; });
-  const perfilVivo = () => ({...p, vacComputo:m.el.querySelector('#pf-vacComputo').value, vacAnuales:m.el.querySelector('#pf-vacAnuales').value||p.vacAnuales,
+  const perfilVivo = () => ({...p, vacPrevias:{...(p.vacPrevias||{}), [anioInicioApp()]: numero(m.el.querySelector('#pf-vacPrev').value)||0}, vacComputo:m.el.querySelector('#pf-vacComputo').value, vacAnuales:m.el.querySelector('#pf-vacAnuales').value||p.vacAnuales,
       alta:m.el.querySelector('#pf-alta').value, bajaContrato:m.el.querySelector('#pf-bajaContrato').value,
       diasSemana:[...m.el.querySelectorAll('#pf-dias input:checked')].map(x=>+x.value)});
   const previaAus = () => {
     if(!id) return; const de=m.el.querySelector('#au-desde').value, ha=m.el.querySelector('#au-hasta').value||de, out=m.el.querySelector('#au-prev');
-    out.innerHTML = de && ha>=de ? 'Contará como <b>'+textoDias(perfilVivo(),{desde:de,hasta:ha})+'</b>' : '';
+    const tipoA=m.el.querySelector('#au-tipo').value, modoA=m.el.querySelector('#au-anio').value;
+    out.innerHTML = de && ha>=de ? 'Contará como <b>'+textoDias(perfilVivo(),{desde:de,hasta:ha})+'</b>'+(tipoA==='vacaciones' && modoA==='' ? '<br>Se descontarán: '+textoReparto(perfilVivo(), AUSENCIAS[id], repartoVacaciones(perfilVivo(),AUSENCIAS[id],de,ha), 'le quedarán') : '') : '';
   };
   const pintarAus = () => {
     if(!id) return;
@@ -1595,11 +1679,11 @@ function formEmpleado(id){
   m.el.querySelector('#pf-aus') && m.el.querySelector('#pf-aus').addEventListener('change', async ev=>{
     const k=ev.target.dataset.ausfirm; if(!k) return; const a=AUSENCIAS[id][k], v=ev.target.checked?Date.now():null;
     await DB.actualizarAusencia(id,k,{firmada:v}); if(v) a.firmada=v; else delete a.firmada;
-    if(a.solicitud && (SOLICITUDES[id]||{})[a.solicitud]){ await DB.actualizarSolicitud(id,a.solicitud,{firmada:v}); if(v) SOLICITUDES[id][a.solicitud].firmada=v; else delete SOLICITUDES[id][a.solicitud].firmada; }
+    const solP=(SOLICITUDES[id]||{})[a.solicitud]; if(solP){ const todas=(solP.ausencias||[k]).every(x=>(AUSENCIAS[id][x]||{}).firmada); if(!v || todas){ await DB.actualizarSolicitud(id,a.solicitud,{firmada:v}); if(v) solP.firmada=v; else delete solP.firmada; } }
     await DB.auditar({accion:v?'vacaciones firmadas en papel':'quitar marca de firmadas', empId:id, desde:a.desde, hasta:a.hasta});
     pintarAus(); pintarSolicitudes();
   });
-  ['#pf-vacComputo','#pf-vacAnuales','#pf-alta','#pf-bajaContrato','#pf-dias','#au-desde','#au-hasta'].forEach(sel=>{ const el=m.el.querySelector(sel); if(el) el.addEventListener('change',()=>{ pintarAus(); previaAus(); }); });
+  ['#pf-vacComputo','#pf-vacAnuales','#pf-alta','#pf-bajaContrato','#pf-dias','#au-desde','#au-hasta','#au-tipo','#au-anio','#pf-vacPrev'].forEach(sel=>{ const el=m.el.querySelector(sel); if(el) el.addEventListener('change',()=>{ pintarAus(); previaAus(); }); });
   if(id){
     const n=new Date(), l=lunesDe(n);
     Promise.all([horasPeriodo(id,l.getTime(),Date.now()), horasPeriodo(id,new Date(n.getFullYear(),n.getMonth(),1).getTime(),Date.now()), horasPeriodo(id,inicioDia(hoyStr()),Date.now())]).then(([hs,hm,hh])=>{
@@ -1626,9 +1710,14 @@ function formEmpleado(id){
       if(!de) return g('#au-err').textContent='Pon la fecha de inicio';
       if(ha<de) return g('#au-err').textContent='La fecha final es anterior a la inicial';
       const o={tipo:g('#au-tipo').value, desde:de, hasta:ha}; const nota=g('#au-nota').value.trim(); if(nota) o.nota=nota;
-      if(o.tipo==='vacaciones' && g('#au-anio').value) o.anio=+g('#au-anio').value;
-      const k=await DB.guardarAusencia(id,o); (AUSENCIAS[id]=AUSENCIAS[id]||{})[k]=o;
-      await DB.auditar({accion:'añadir ausencia', empId:id, ...o});
+      const modoA=g('#au-anio').value;
+      let lista=[o];
+      if(o.tipo==='vacaciones'){
+        if(modoA==='') lista=repartoVacaciones(perfilVivo(), AUSENCIAS[id], de, ha).map(t=>({...o, desde:t.desde, hasta:t.hasta, anio:t.anio}));
+        else if(modoA!=='fechas') o.anio=+modoA;
+      }
+      for(const x of lista){ const k=await DB.guardarAusencia(id,x); (AUSENCIAS[id]=AUSENCIAS[id]||{})[k]=x; await DB.auditar({accion:'añadir ausencia', empId:id, ...x}); }
+      if(lista.length>1) toast('Repartidas en '+lista.length+' años: '+lista.map(x=>diasQueCuentan(perfilVivo(),x.desde,x.hasta)+' días de '+x.anio).join(' y '), true);
       g('#au-desde').value=g('#au-hasta').value=g('#au-nota').value=''; g('#au-err').textContent=''; g('#au-prev').innerHTML='';
       pintarAus(); pintarEmpleados(); pintarResumen(); return;
     }
@@ -1658,13 +1747,16 @@ function formEmpleado(id){
     const horasDia={}; m.el.querySelectorAll('[data-hd]').forEach(x=>{ if(x.value){ (horasDia[x.dataset.hd]=horasDia[x.dataset.hd]||[])[+x.dataset.i]=x.value; } });
     Object.keys(horasDia).forEach(k=>{ horasDia[k]=horasDia[k].filter(Boolean); });
     if(g('#em-desde').checked && !horasEnt.length && !Object.keys(horasDia).length) return g('#em-err').textContent='Pon al menos una hora de entrada';
-    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg, horasEntrada:horasEnt, horasEntradaDia:horasDia, contarDesdeHorario:g('#em-desde').checked};
+    const presSem={}; m.el.querySelectorAll('[data-pres]').forEach(x=>{ if(x.value) presSem[x.dataset.pres]=x.value; });
+    const o={...(id?EMPLEADOS[id]:{}), nombre:nom, lugares:lugs, tienda:lugs[0], activo:g('#em-act').checked, margenEntrada:mg, horasEntrada:horasEnt, horasEntradaDia:horasDia, contarDesdeHorario:g('#em-desde').checked,
+      color:g('#em-color').value, sinFichaje:g('#em-sinf').checked, presenciaSemana:presSem, presenciaDias:presDias};
     if(pin){ o.pin=await hashPin(pin,nid); o.pinProvisional=true; }
     const perfil={}; CAMPOS_PERFIL.forEach(k=>{ const val=g('#pf-'+k).value.trim(); if(val) perfil[k]=val; });
     if(perfil.dni) perfil.dni=perfil.dni.toUpperCase().replace(/[\s-]/g,'');
     const dsel=[...m.el.querySelectorAll('#pf-dias input:checked')].map(x=>+x.value);
     if(!dsel.length) return g('#em-err').textContent='Marca al menos un día de trabajo';
     perfil.diasSemana=dsel;
+    { const vp={...(p.vacPrevias||{})}, n=numero(g('#pf-vacPrev').value); if(n>0) vp[anioInicioApp()]=n; else delete vp[anioInicioApp()]; if(Object.keys(vp).length) perfil.vacPrevias=vp; }
     if(g('#pf-rep-on').checked){
       const rsel=[...m.el.querySelectorAll('#pf-rep input:checked')].map(x=>+x.value);
       if(!rsel.length) return g('#em-err').textContent='Marca los días en que hace las horas';
@@ -1742,39 +1834,91 @@ function antig(alta){
   return (y?y+' año'+(y>1?'s':'')+' ':'')+(mm||!y?mm+' mes'+(mm!==1?'es':''):'');
 }
 
-/* Calendario mensual de vacaciones y ausencias (admin) */
-let calRef=new Date();
-$('#cal-ant').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()-1,1); pintarCalendario(); };
-$('#cal-sig').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()+1,1); pintarCalendario(); };
+/* Calendario de vacaciones y ausencias, por mes o por año, con un color por persona (admin) */
+const PALETA_PERSONAS=['#e6194b','#3cb44b','#4363d8','#f58231','#911eb4','#0fb5c9','#f032e6','#9a6324','#008080','#800000','#7d8a00','#000075','#e6a800','#ff6f91','#5f6b7a'];
+function colorEmp(id){ const e=EMPLEADOS[id]||{}; if(e.color) return e.color; const i=empOrdenados().findIndex(([k])=>k===id); return PALETA_PERSONAS[(i<0?0:i)%PALETA_PERSONAS.length]; }
+let calRef=new Date(), calModo='mes';
+document.querySelectorAll('[data-calm]').forEach(b=>b.onclick=()=>{ calModo=b.dataset.calm; document.querySelectorAll('[data-calm]').forEach(x=>x.classList.toggle('act',x===b)); pintarCalendario(); });
+$('#cal-ant').onclick=()=>{ calRef = calModo==='anio' ? new Date(calRef.getFullYear()-1,0,1) : new Date(calRef.getFullYear(),calRef.getMonth()-1,1); pintarCalendario(); };
+$('#cal-sig').onclick=()=>{ calRef = calModo==='anio' ? new Date(calRef.getFullYear()+1,0,1) : new Date(calRef.getFullYear(),calRef.getMonth()+1,1); pintarCalendario(); };
 $('#cal-hoy').onclick=()=>{ calRef=new Date(); pintarCalendario(); };
 $('#cal-lugar').onchange=()=>pintarCalendario(); $('#cal-pend').onchange=()=>pintarCalendario();
-function pintarCalendario(){
-  const y=calRef.getFullYear(), mo=calRef.getMonth(), nd=new Date(y,mo+1,0).getDate(), ini=claveDia(new Date(y,mo,1).getTime()), fin=claveDia(new Date(y,mo,nd).getTime());
-  const t=new Date(y,mo,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'}); $('#cal-tit').textContent=t[0].toUpperCase()+t.slice(1);
-  const lug=$('#cal-lugar').value, verPend=$('#cal-pend').checked, fest=festivosSet();
-  const nombresFest={}; (CONFIG.festivosTxt||'').split('\n').forEach(l=>{ const m=l.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\s*(.*)$/); if(m) nombresFest[m[3]+'-'+pad(m[2])+'-'+pad(m[1])]=m[4]; });
+function nombresFestivos(){ const o={}; (CONFIG.festivosTxt||'').split('\n').forEach(l=>{ const m=l.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\s*(.*)$/); if(m) o[m[3]+'-'+pad(m[2])+'-'+pad(m[1])]=m[4]; }); return o; }
+function datosCalendario(ini, fin){
+  const lug=$('#cal-lugar').value, verPend=$('#cal-pend').checked;
   const emps=empOrdenados().filter(([,e])=>e.activo!==false && (!lug || lugaresDe(e).includes(lug)));
-  const items=[];   // {id,nombre,tipo,desde,hasta,pend}
+  const items=[];
   emps.forEach(([id,e])=>{
-    Object.values(AUSENCIAS[id]||{}).forEach(a=>{ if(a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta}); });
-    if(verPend) Object.values(SOLICITUDES[id]||{}).forEach(a=>{ if(a.estado==='pendiente' && a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta,pend:true}); });
+    Object.values(AUSENCIAS[id]||{}).forEach(a=>{ if(a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta,color:colorEmp(id)}); });
+    if(verPend) Object.values(SOLICITUDES[id]||{}).forEach(a=>{ if(a.estado==='pendiente' && a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta,pend:true,color:colorEmp(id)}); });
   });
-  let h=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="dsem">${d}</div>`).join('');
+  return {emps, items};
+}
+function htmlMes(y, mo, items){
+  const nd=new Date(y,mo+1,0).getDate(), fest=festivosSet(), nf=nombresFestivos();
+  let h='<div class="cal">'+['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="dsem">${d}</div>`).join('');
   const hueco=(new Date(y,mo,1).getDay()+6)%7; for(let i=0;i<hueco;i++) h+='<div class="dia vacio"></div>';
   for(let d=1; d<=nd; d++){
     const k=y+'-'+pad(mo+1)+'-'+pad(d), dw=new Date(y,mo,d).getDay();
     const del=items.filter(it=>it.desde<=k && it.hasta>=k).sort((a,b)=>(a.pend?1:0)-(b.pend?1:0) || a.nombre.localeCompare(b.nombre,'es'));
-    h+=`<div class="dia ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''}"><div class="num"><span>${d}</span>${fest.has(k)?`<small title="${esc(nombresFest[k]||'Festivo')}">${esc(nombresFest[k]||'Festivo')}</small>`:''}</div>
-      ${del.map(it=>`<span class="chip-cal ${it.pend?'pend-cal':it.tipo}" data-emp="${it.id}" title="${esc(it.nombre)} · ${TIPOS_AUS[it.tipo]}${it.pend?' (pendiente)':''}">${esc(it.nombre)}</span>`).join('')}</div>`;
+    h+=`<div class="dia ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''}"><div class="num"><span>${d}</span>${fest.has(k)?`<small>${esc(nf[k]||'Festivo')}</small>`:''}</div>
+      ${del.map(it=>`<span class="chip-cal ${it.pend?'pend-cal':''}" style="${it.pend?`border-color:${it.color};color:${it.color}`:`background:${it.color}`}" data-emp="${it.id}" title="${esc(it.nombre)} · ${TIPOS_AUS[it.tipo]}${it.pend?' (pendiente)':''}">${esc(it.nombre)}${it.tipo!=='vacaciones'?' · '+CORTO_AUS[it.tipo]:''}</span>`).join('')}</div>`;
   }
-  $('#cal-grid').innerHTML=h;
-  // resumen: días del mes por persona
+  return h+'</div>';
+}
+function htmlAnio(y, items){
+  const fest=festivosSet(); let h='<div class="anio">';
+  for(let mo=0; mo<12; mo++){
+    const nd=new Date(y,mo+1,0).getDate(), hueco=(new Date(y,mo,1).getDay()+6)%7;
+    const nomMes=new Date(y,mo,1).toLocaleDateString('es-ES',{month:'long'});
+    h+=`<div class="mini" data-mes="${mo}"><div class="mini-tit">${nomMes[0].toUpperCase()+nomMes.slice(1)}</div><div class="mini-grid">`+['L','M','X','J','V','S','D'].map(d=>`<div class="mini-ds">${d}</div>`).join('');
+    for(let i=0;i<hueco;i++) h+='<div></div>';
+    for(let d=1; d<=nd; d++){
+      const k=y+'-'+pad(mo+1)+'-'+pad(d), dw=new Date(y,mo,d).getDay();
+      const del=items.filter(it=>it.desde<=k && it.hasta>=k);
+      const tit=del.map(it=>it.nombre+(it.pend?' (pendiente)':'')).join(', ');
+      h+=`<div class="md ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''}" ${tit?`title="${esc(tit)}"`:''}><span>${d}</span><div class="barras">${del.slice(0,6).map(it=>`<i style="background:${it.color};${it.pend?'opacity:.4':''}"></i>`).join('')}</div></div>`;
+    }
+    h+='</div></div>';
+  }
+  return h+'</div>';
+}
+function leyendaCal(items){
+  const vistos=[...new Map(items.map(it=>[it.id,it])).values()].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  return (vistos.length ? vistos.map(it=>`<span class="ley-per"><i style="background:${it.color}"></i>${esc(it.nombre)}</span>`).join('') : '<span class="sub" style="margin:0">Nadie de vacaciones en este periodo.</span>')
+    + `<span class="ley-per"><i style="background:#ccc;opacity:.45;border:1px dashed #888"></i>Pendiente de aprobar</span><span class="cal-fest-ley">Festivo</span>`
+    + `<span class="sub" style="margin:0;font-size:.75rem">A.P. = asuntos propios · Perm. = permiso</span>`;
+}
+function resumenCal(emps, ini, fin){
   const res=emps.map(([id,e])=>{ const p=PERFILES[id]||{}; let dv=0, otros=0;
     Object.values(AUSENCIAS[id]||{}).forEach(a=>{ if(a.desde<=fin && a.hasta>=ini){ const de=a.desde<ini?ini:a.desde, ha=a.hasta>fin?fin:a.hasta, n=diasQueCuentan(p,de,ha); if(a.tipo==='vacaciones') dv+=n; else otros+=n; } });
     return {id,nombre:e.nombre,dv,otros}; }).filter(r=>r.dv||r.otros);
-  $('#cal-res').innerHTML = res.length ? '<table>'+'<tr><th>Empleado</th><th class="num">Vacaciones</th><th class="num">Otras ausencias</th></tr>'+res.map(r=>`<tr class="persona-fila" data-emp="${r.id}" style="cursor:pointer"><td>${esc(r.nombre)}</td><td class="num">${r.dv||'—'}</td><td class="num">${r.otros||'—'}</td></tr>`).join('')+'</table>' : '<p class="sub" style="margin:0">Nadie tiene vacaciones ni ausencias este mes.</p>';
+  return res.length ? '<table><tr><th>Empleado</th><th class="num">Vacaciones</th><th class="num">Otras ausencias</th></tr>'+res.map(r=>`<tr data-emp="${r.id}" style="cursor:pointer"><td><span class="ley-per" style="margin:0"><i style="background:${colorEmp(r.id)}"></i>${esc(r.nombre)}</span></td><td class="num">${r.dv||'—'}</td><td class="num">${r.otros||'—'}</td></tr>`).join('')+'</table>' : '<p class="sub" style="margin:0">Nadie tiene vacaciones ni ausencias en este periodo.</p>';
 }
-['#cal-grid','#cal-res'].forEach(s=>$(s).addEventListener('click',e=>{ const t=e.target.closest('[data-emp]'); if(t) formEmpleado(t.dataset.emp); }));
+function periodoCal(){
+  const y=calRef.getFullYear(), mo=calRef.getMonth();
+  if(calModo==='anio') return {y, mo, ini:y+'-01-01', fin:y+'-12-31', tit:String(y)};
+  const nd=new Date(y,mo+1,0).getDate(), t=new Date(y,mo,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+  return {y, mo, ini:y+'-'+pad(mo+1)+'-01', fin:y+'-'+pad(mo+1)+'-'+pad(nd), tit:t[0].toUpperCase()+t.slice(1)};
+}
+function pintarCalendario(){
+  const P=periodoCal(), {emps,items}=datosCalendario(P.ini,P.fin);
+  $('#cal-tit').textContent=P.tit;
+  $('#cal-grid').innerHTML = calModo==='anio' ? htmlAnio(P.y, items) : htmlMes(P.y, P.mo, items);
+  $('#cal-ley').innerHTML = leyendaCal(items);
+  $('#cal-res-tit').textContent = calModo==='anio' ? 'Resumen del año' : 'Resumen del mes';
+  $('#cal-res').innerHTML = resumenCal(emps, P.ini, P.fin);
+}
+$('#cal-grid').addEventListener('click',e=>{
+  const c=e.target.closest('[data-emp]'); if(c) return formEmpleado(c.dataset.emp);
+  const mm=e.target.closest('[data-mes]'); if(mm){ calRef=new Date(calRef.getFullYear(), +mm.dataset.mes, 1); calModo='mes'; document.querySelectorAll('[data-calm]').forEach(x=>x.classList.toggle('act',x.dataset.calm==='mes')); pintarCalendario(); }
+});
+$('#cal-res').addEventListener('click',e=>{ const t=e.target.closest('[data-emp]'); if(t) formEmpleado(t.dataset.emp); });
+$('#cal-print').onclick=()=>{
+  const P=periodoCal(), {items}=datosCalendario(P.ini,P.fin), lug=$('#cal-lugar').value;
+  imprimirDoc(`<div class="hoja-cal ${calModo==='anio'?'apaisado':''}"><h1>Vacaciones y ausencias · ${esc(P.tit)}${lug?' · '+esc(lug):''}</h1><div class="sub-print">Colchonería Blázquez S.L. · impreso el ${new Date().toLocaleDateString('es-ES')}</div>
+    ${calModo==='anio'?htmlAnio(P.y,items):htmlMes(P.y,P.mo,items)}<div class="cal-leyenda">${leyendaCal(items)}</div></div>`);
+};
 
 /* Dibujos de los centros (estilo dibujo animado) */
 const ESTILO_TIENDA = {
@@ -1843,17 +1987,23 @@ function pintarCentros(){
     const ultEnt=[...regs].reverse().find(r=>r.tipo==='entrada');
     const aus=Object.values(AUSENCIAS[id]||{}).find(a=>a.desde<=hoy && a.hasta>=hoy);
     info[id]={est, donde: ultEnt ? (ultEnt.tienda || lugaresDe(e)[0] || '') : '', desde: ultEnt?ultEnt.ts:null, aus, trabajaHoy: diasTrabajo(PERFILES[id]||{}).includes(new Date().getDay()), regs};
+    if(e.sinFichaje){ const pr=presenciaDe(id,hoy); info[id]={...info[id], est: pr?'presente':'fuera', donde: pr||'', sinf:true}; }
   });
+  const sinf=activos.filter(([,e])=>e.sinFichaje);
+  $('#centros-sinf').innerHTML = sinf.length ? `<div class="tarjeta" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center"><strong>Hoy (no fichan):</strong>${sinf.map(([id,e])=>{ const pr=presenciaDe(id,hoy), aus=info[id].aus;
+      return `<label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--texto)"><span class="ley-per" style="margin:0"><i style="background:${colorEmp(id)}"></i><b>${esc(e.nombre)}</b></span>${aus?`<span class="etq ${aus.tipo}">${TIPOS_AUS[aus.tipo]}</span>`:`<select data-hoy-pres="${id}" style="width:auto;padding:6px 8px"><option value="no" ${!pr?'selected':''}>No está</option>${LUGARES().map(L=>`<option ${pr===L?'selected':''}>${esc(L)}</option>`).join('')}</select>`}</label>`; }).join('')}</div>` : '';
   const lugares=[...LUGARES()]; if(activos.some(([,e])=>!lugaresDe(e).length)) lugares.push('');
   $('#centros-grid').innerHTML = lugares.map((L,iL)=>{
     const aqui=activos.filter(([id])=>info[id].est!=='fuera' && info[id].donde===L);
     const asignados=activos.filter(([,e])=> L ? lugaresDe(e).includes(L) : !lugaresDe(e).length);
     const fila=(id,e,det,cls)=>`<div class="persona" data-emp="${id}"><span class="pt ${cls}"></span><span>${esc(e.nombre)}</span><span class="det">${det}</span></div>`;
     const ahora = aqui.length ? aqui.map(([id,e])=>{ const i=info[id], cubre=L && !lugaresDe(e).includes(L);
+        if(i.sinf) return fila(id,e,'Hoy aquí <span class="flag" style="margin:0">no ficha</span>','presente');
         return fila(id,e,(i.est==='pausa'?'En pausa · ':'')+'desde '+hhmm(i.desde)+(cubre?'<br><b style="color:#a35d00">cubriendo</b>':''), i.est); }).join('')
       : '<p class="sub" style="margin:0;font-size:.85rem">Nadie fichado ahora mismo.</p>';
     const asig = asignados.length ? asignados.map(([id,e])=>{ const i=info[id]; let det, cls='';
         if(i.aus){ det=TIPOS_AUS[i.aus.tipo]+' hasta el '+i.aus.hasta.split('-').reverse().slice(0,2).join('/'); cls='aus'; }
+        else if(i.sinf){ det = i.donde===L ? 'Hoy aquí' : i.donde ? 'Hoy en '+esc(i.donde) : 'Hoy no está'; cls = i.donde===L ? 'presente' : i.donde ? 'otro' : ''; }
         else if(i.est!=='fuera' && i.donde===L){ det=i.est==='pausa'?'En pausa aquí':'Trabajando aquí'; cls=i.est; }
         else if(i.est!=='fuera'){ det='Trabajando en '+esc(i.donde||'otro centro'); cls='otro'; }
         else if(i.regs.some(r=>r.tipo==='salida')){ det='Ya ha salido'; }
@@ -1867,6 +2017,11 @@ function pintarCentros(){
   }).join('');
 }
 $('#centros-grid').addEventListener('click',e=>{ const t=e.target.closest('[data-emp]'); if(t) formEmpleado(t.dataset.emp); });
+$('#centros-sinf').addEventListener('change', async e=>{
+  const id=e.target.dataset.hoyPres; if(!id) return; const emp=EMPLEADOS[id];
+  const o={...emp, presenciaDias:{...(emp.presenciaDias||{}), [hoyStr()]: e.target.value}};
+  await DB.guardarEmpleado(id,o); toast(esc(emp.nombre)+': '+(e.target.value==='no'?'hoy no está':'hoy en '+esc(e.target.value)), true);
+});
 
 /* Solicitudes de vacaciones (admin) */
 let solFiltro='pendiente';
@@ -1880,13 +2035,14 @@ function pintarSolicitudes(){
   if(!l.length){ $('#sol-lista').innerHTML=`<p class="sub">${solFiltro==='pendiente'?'No hay solicitudes pendientes.':solFiltro==='firmar'?'No hay vacaciones pendientes de firmar.':'Todavía no hay solicitudes.'}</p>`; return; }
   $('#sol-lista').innerHTML=l.map(a=>{
     const p=PERFILES[a.id]||{}, e=EMPLEADOS[a.id]||{nombre:a.nombre}, yy=anioVac(a);
-    const cuenta=diasQueCuentan(p,a.desde,a.hasta), quedan=vacCorresponden(p,yy)-vacacionesUsadas(p,AUSENCIAS[a.id],yy);
+    const tramosSol = (a.tipo==='vacaciones' && a.estado==='pendiente') ? repartoVacaciones(p, AUSENCIAS[a.id], a.desde, a.hasta) : [];
     const coin=a.estado==='pendiente'?coincidencias(a.id,a.desde,a.hasta,AUSENCIAS,SOLICITUDES):[];
     return `<div class="sol ${a.estado==='pendiente'?'pend':''}">
       <div class="cab-sol"><div><b>${esc(e.nombre)}</b> · ${TIPOS_AUS[a.tipo]} <span class="etq ${a.estado}" style="margin-left:6px">${ESTADOS_SOL[a.estado]}</span></div>
         <div class="sub" style="margin:0;font-size:.8rem">Pedida el ${new Date(a.creada).toLocaleDateString('es-ES')}</div></div>
       <div style="margin-top:6px">${fCortaISO(a.desde)}${a.hasta!==a.desde?' → '+fCortaISO(a.hasta):''} · ${textoDias(p,a)}</div>
-      ${a.tipo==='vacaciones'&&a.estado==='pendiente'?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Le quedan ${quedan} días en ${yy}; si la apruebas, le quedarán <b style="color:${quedan-cuenta<0?'var(--rojo)':'inherit'}">${quedan-cuenta}</b>.</div>`:''}
+      ${tramosSol.length?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Si la apruebas se descuentan: ${textoReparto(p, AUSENCIAS[a.id], tramosSol, 'le quedarán')}.${tramosSol.length>1?' Se harán <b>'+tramosSol.length+' documentos</b>, uno por año.':''}</div>`:''}
+      ${a.estado==='aprobada' && (a.ausencias||[]).length>1 ? `<div class="sub" style="margin:4px 0 0;font-size:.85rem">Repartidas: ${(a.ausencias||[]).map(k=>(AUSENCIAS[a.id]||{})[k]).filter(Boolean).map(x=>diasQueCuentan(p,x.desde,x.hasta)+' días de '+anioVac(x)).join(' y ')}</div>`:''}
       ${a.nota?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Comentario: ${esc(a.nota)}</div>`:''}
       ${a.respuesta?`<div class="sub" style="margin:4px 0 0;font-size:.85rem">Tu respuesta: ${esc(a.respuesta)}</div>`:''}
       ${coin.length?`<div class="aviso-coin">⚠ Coincide con compañeros de su lugar de trabajo:<br>${coin.map(esc).join('<br>')}</div>`:''}
@@ -1900,7 +2056,7 @@ $('#sol-lista').addEventListener('change', async ev=>{
   const ref=ev.target.dataset.firmada; if(!ref) return;
   const [id,k]=ref.split('|'), a=SOLICITUDES[id][k], v=ev.target.checked?Date.now():null;
   await DB.actualizarSolicitud(id,k,{firmada:v}); a.firmada=v||undefined; if(!v) delete a.firmada;
-  if(a.ausencia && (AUSENCIAS[id]||{})[a.ausencia]){ await DB.actualizarAusencia(id,a.ausencia,{firmada:v}); if(v) AUSENCIAS[id][a.ausencia].firmada=v; else delete AUSENCIAS[id][a.ausencia].firmada; }
+  for(const ak of (a.ausencias || (a.ausencia?[a.ausencia]:[]))){ if(!(AUSENCIAS[id]||{})[ak]) continue; await DB.actualizarAusencia(id,ak,{firmada:v}); if(v) AUSENCIAS[id][ak].firmada=v; else delete AUSENCIAS[id][ak].firmada; }
   await DB.auditar({accion:v?'vacaciones firmadas en papel':'quitar marca de firmadas', empId:id, desde:a.desde, hasta:a.hasta});
   toast(v?'Marcadas como firmadas':'Marca de firma quitada', true); pintarSolicitudes();
 });
@@ -1912,7 +2068,12 @@ $('#sol-lista').addEventListener('click', async ev=>{
   const aprobar=!!t.dataset.apro;
   if(!await confirmar(`${aprobar?'Aprobar':'Rechazar'} ${TIPOS_AUS[a.tipo].toLowerCase()} de ${e.nombre} del ${a.desde.split('-').reverse().join('/')} al ${a.hasta.split('-').reverse().join('/')}.`, aprobar?'Sí, aprobar':'Sí, rechazar')) return;
   const pt={estado:aprobar?'aprobada':'rechazada', respondida:Date.now()}; if(resp) pt.respuesta=resp;
-  if(aprobar){ const au={tipo:a.tipo, desde:a.desde, hasta:a.hasta, ...(a.nota?{nota:a.nota}:{}), ...(a.anio?{anio:a.anio}:{}), solicitud:k}; const ak=await DB.guardarAusencia(id,au); (AUSENCIAS[id]=AUSENCIAS[id]||{})[ak]=au; pt.ausencia=ak; }
+  if(aprobar){
+    const tramos = a.tipo==='vacaciones' ? repartoVacaciones(PERFILES[id]||{}, AUSENCIAS[id], a.desde, a.hasta) : [{desde:a.desde, hasta:a.hasta}];
+    const keys=[];
+    for(const t of tramos){ const au={tipo:a.tipo, desde:t.desde, hasta:t.hasta, ...(a.nota?{nota:a.nota}:{}), ...(t.anio?{anio:t.anio}:{}), solicitud:k}; const ak=await DB.guardarAusencia(id,au); (AUSENCIAS[id]=AUSENCIAS[id]||{})[ak]=au; keys.push(ak); }
+    pt.ausencia=keys[0]; pt.ausencias=keys;
+  }
   await DB.actualizarSolicitud(id,k,pt); Object.assign(a,pt);
   await DB.auditar({accion:aprobar?'aprobar vacaciones':'rechazar vacaciones', empId:id, desde:a.desde, hasta:a.hasta, respuesta:resp});
   toast(aprobar?`Aprobadas. Ya están en las vacaciones de ${esc(e.nombre)}.`:'Solicitud rechazada', true);
@@ -1922,7 +2083,9 @@ $('#sol-lista').addEventListener('click', async ev=>{
 async function imprimirSolicitud(id, a){
   const p=PERFILES[id]||{};
   if(!p.dni && !await confirmar('Este empleado no tiene DNI/NIE en su ficha. El documento saldrá sin NIF.','Sacarlo igualmente')) return;
-  imprimirDoc(docDeVacaciones(id, a));
+  let partes=(a.ausencias || (a.ausencia?[a.ausencia]:[])).map(k=>(AUSENCIAS[id]||{})[k]).filter(Boolean);
+  if(!partes.length) partes=repartoVacaciones(p, AUSENCIAS[id], a.desde, a.hasta).map(t=>({tipo:a.tipo, desde:t.desde, hasta:t.hasta, anio:t.anio}));
+  imprimirDoc(partes.map(x=>docDeVacaciones(id, x)).join(''));
 }
 
 /* Ajustes */
