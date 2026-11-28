@@ -171,6 +171,15 @@ tr.det td{background:#f8fafc}
 #print .firma-doc img{max-height:110px;max-width:320px;display:block;margin:10px auto}
 #print .hueco-firma{height:110px}
 
+/* ---------- NÓMINAS ---------- */
+.np-pdf canvas{display:block;width:100%;height:auto;border:1px solid var(--linea);border-radius:8px;margin:0 0 10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.np-caja{background:#fff;border-radius:var(--radio);padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px}
+.etq.nfirm{background:var(--verde)}.etq.npend{background:#e09b1a}.etq.nerr{background:var(--rojo)}.etq.nsin{background:#9aa4b1}
+.rep-file{border:1px solid var(--linea);border-radius:12px;padding:12px;margin-bottom:12px}
+.rep-file table td,.rep-file table th{padding:6px 8px}
+.rep-file select{padding:6px 8px}
+.conf-alta{color:var(--verde);font-size:.8rem}.conf-baja{color:#a35d00;font-size:.8rem}
+
 /* ---------- CALENDARIO ---------- */
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .dsem{font-size:.75rem;font-weight:700;color:var(--gris);text-align:center;padding:4px 0;text-transform:uppercase}
@@ -184,6 +193,8 @@ tr.det td{background:#f8fafc}
 .chip-cal{display:block;font-size:.72rem;line-height:1.3;padding:2px 6px;border-radius:6px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .chip-cal.vacaciones{background:#2f6fbf}.chip-cal.asuntos{background:#7c5cc4}.chip-cal.baja{background:#6b7685}.chip-cal.permiso{background:#0f8a8a}.chip-cal.otro{background:#8a8f98}
 .chip-cal.pend-cal{background:#fff;color:#a35d00;border:1.5px dashed #e09b1a}
+.chip-cal.falta{background:#fde8e8;color:#8a1f1f;border:1.5px dashed var(--rojo);cursor:default}
+.md.falta{box-shadow:inset 0 -3px 0 var(--rojo)}
 .cal-leyenda{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:.8rem}
 .cal-leyenda .chip-cal{display:inline-block}
 .cal-fest-ley{background:#fff3f3;border:1px solid #f5c2c2;border-radius:6px;padding:2px 8px;color:var(--rojo)}
@@ -300,6 +311,7 @@ tr.det td{background:#f8fafc}
     <button data-tab="informe">Informe mensual</button>
     <button data-tab="empleados">Empleados</button>
     <button data-tab="solicitudes">Solicitudes<span class="badge oculto" id="sol-badge"></span></button>
+    <button data-tab="nominas">Nóminas<span class="badge oculto" id="nom-badge"></span></button>
     <button data-tab="calendario">Calendario</button>
     <button data-tab="centros">Centros</button>
     <button data-tab="ajustes">Ajustes</button>
@@ -361,11 +373,34 @@ tr.det td{background:#f8fafc}
 
   <!-- Empleados -->
   <div class="panel oculto" data-panel="empleados">
+    <div class="tarjeta oculto" id="e-vacantes" style="border-left:4px solid var(--rojo)"></div>
     <div class="tarjeta">
       <div class="fila-btn" style="margin-top:0;justify-content:space-between;align-items:center">
         <strong>Plantilla</strong><button class="btn pri" id="e-nuevo">＋ Nuevo empleado</button>
       </div>
       <div class="tabla-scroll"><table id="t-emp"></table></div>
+    </div>
+  </div>
+
+  <!-- Nóminas -->
+  <div class="panel oculto" data-panel="nominas">
+    <div id="n-avisos"></div>
+    <div class="tarjeta oculto" id="n-correos"></div>
+    <div class="tarjeta">
+      <strong>Enviar nóminas para firmar</strong>
+      <p class="sub" style="margin:6px 0 10px;font-size:.88rem">Sube un PDF por empleado o el PDF de la gestoría con todas juntas: la app busca en cada página el DNI o el nombre y apellidos y la reparte. Revisa la tabla antes de enviar. A cada empleado le llega un correo con un enlace privado; firma desde el móvil y recibe la copia firmada. A vosotros os llega también una copia y queda guardada aquí.</p>
+      <div class="filtros">
+        <div><label>Mes de la nómina</label><input type="month" id="n-mes"></div>
+        <div style="grid-column:span 2"><label>PDF de las nóminas</label><input type="file" id="n-file" accept="application/pdf,.pdf" multiple></div>
+      </div>
+      <div id="n-reparto" style="margin-top:12px"></div>
+    </div>
+    <div class="tarjeta">
+      <div class="fila-btn" style="margin-top:0;justify-content:space-between;align-items:center">
+        <strong>Nóminas enviadas</strong>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="n-filtro-mes" style="width:auto"></select><select id="n-filtro-est" style="width:auto"><option value="">Todas</option><option value="pend">Sin firmar</option><option value="firm">Firmadas</option></select></div>
+      </div>
+      <div class="tabla-scroll" id="n-lista" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -427,6 +462,13 @@ tr.det td{background:#f8fafc}
       <div id="s-dirs" class="grid2" style="margin-top:4px"></div>
       <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-dirs">Guardar direcciones</button></div>
     </div>
+    <div class="tarjeta" id="s-correo-tarjeta">
+      <strong>Correo para las nóminas</strong>
+      <label>Dirección del script de Google que envía los correos (empieza por https://script.google.com/…)</label>
+      <input id="s-correo-url" placeholder="https://script.google.com/macros/s/…/exec">
+      <p class="sub" style="margin-top:6px;font-size:.85rem">Se configura una sola vez siguiendo el archivo <b>PASOS-NOMINAS.txt</b> del Escritorio. Los correos salen de vuestro Gmail.</p>
+      <div class="fila-btn" style="justify-content:flex-start"><button class="btn pri" id="s-guardar-correo">Guardar</button><button class="btn" id="s-probar-correo">Enviarme un correo de prueba</button></div>
+    </div>
     <div class="tarjeta">
       <strong>Fecha en que empezáis a fichar</strong>
       <label>Antes de esta fecha no se cuentan horas previstas (así nadie sale con horas de menos por los días en que aún no se fichaba)</label>
@@ -459,6 +501,12 @@ tr.det td{background:#f8fafc}
   </div>
 </div>
 
+<!-- =================== FIRMA DE NÓMINA (enlace del correo: ?nomina=…) =================== -->
+<div id="nomina-pag" class="oculto">
+  <div class="cab"><div class="marca">Colchonería Blázquez<small>Nómina para firmar</small></div></div>
+  <div class="cuerpo" id="np-cuerpo" style="max-width:860px;margin:0 auto;width:100%"></div>
+</div>
+
 <div id="capas"></div>
 <div id="print"></div>
 
@@ -479,7 +527,7 @@ const FIREBASE_CONFIG = {
   appId: "1:211437981374:web:3e5a3be8bcb979cf0d58ef"
 };
 // Datos de la ficha que necesitan ver los propios empleados (horas, vacaciones). El resto (DNI, dirección…) solo lo ve el administrador.
-const CAMPOS_LABORALES = ['vacPrevias','puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','diasReparto','vacAnuales','vacComputo','horario'];
+const CAMPOS_LABORALES = ['emailMask','vacPrevias','puesto','alta','bajaContrato','contrato','horasSemana','diasSemana','diasReparto','vacAnuales','vacComputo','horario'];
 /* Ejemplo:
 const FIREBASE_CONFIG = {
   apiKey: "AIza...",
@@ -489,10 +537,28 @@ const FIREBASE_CONFIG = {
   appId: "1:...:web:..."
 };
 */
+// Nóminas con firma: ponlo en true cuando estén puestas las reglas nuevas de Firebase y el script de Gmail (PASOS-NOMINAS.txt)
+const NOMINAS_ACTIVAS = false;
 const RAIZ = 'fichaje';                       // nodo raíz dentro de la base de datos
 const TIENDAS = ['Mirat','Carmelitas','Anaya','Almacén','Valladolid'];   // lista inicial; se puede cambiar en Ajustes
 const LUGARES = () => (CONFIG && Array.isArray(CONFIG.lugares) && CONFIG.lugares.length) ? CONFIG.lugares : TIENDAS;
 const lugaresDe = e => Array.isArray(e.lugares) && e.lugares.length ? e.lugares : (e.tienda ? [e.tienda] : []);
+// Activo en una fecha: no desactivado a mano y sin baja en la empresa anterior a esa fecha (fechaBaja = último día que trabaja)
+const estaActivo = (e, fecha) => !!e && e.activo!==false && !(e.fechaBaja && e.fechaBaja < (fecha || hoyStr()));
+const fechaES = s => s ? s.split('-').reverse().join('/') : '';
+/* Puestos que quedan libres al dar de baja a alguien, hasta que se contrata a otra persona.
+   CONFIG.vacantes = { clave: {puesto, lugar, desde (primer día sin esa persona), sale:{id,nombre}, cubierta:{id?,nombre?,desde} } } */
+const vacantes = () => Object.entries((CONFIG && CONFIG.vacantes) || {});
+const vacantesAbiertas = () => vacantes().filter(([,v])=>!v.cubierta);
+const vacanteAbiertaEn = (v, k) => v.desde<=k && !(v.cubierta && v.cubierta.desde<=k);
+const faltasDia = (k, lug) => vacantes().map(([,v])=>v).filter(v=>vacanteAbiertaEn(v,k) && (!lug || v.lugar===lug));
+async function guardarVacantes(obj){ await DB.guardarConfig({vacantes:obj}); CONFIG=await DB.leerConfig(); }
+function textoFaltas(lista){   // "1 repartidor" / "2 repartidores y 1 dependienta"
+  const n={}; lista.forEach(v=>{ const p=(v.puesto||'persona').trim(); n[p]=(n[p]||0)+1; });
+  const pl=(p,c)=>c===1?p:(/[aeiouáéó]$/i.test(p)?p+'s':p+'es');
+  const partes=Object.entries(n).map(([p,c])=>c+' '+pl(p.toLowerCase(),c));
+  return partes.length>1 ? partes.slice(0,-1).join(', ')+' y '+partes[partes.length-1] : (partes[0]||'');
+}
 const DIRECCIONES_INICIALES = {'Valladolid':'Paseo de Zorrilla, 15, Valladolid'};
 const direccionDe = L => ((CONFIG && CONFIG.direcciones) || {})[L] ?? DIRECCIONES_INICIALES[L] ?? '';
 const opcLugares = () => LUGARES().map(t=>`<option>${esc(t)}</option>`).join('');
@@ -516,6 +582,11 @@ const horasDec = ms => (ms/3600000).toFixed(2).replace('.',',');
 const iniciales = n => n.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
 const lsGet = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
 const lsSet = (k,v) => { try{ localStorage.setItem(k,v); }catch(e){} };
+
+// Correo enmascarado (a***@gmail.com): se guarda en la parte que ven los empleados, para que sepan a qué correo les llegan las nóminas
+function mascaraCorreo(c){ const m=String(c||'').trim().match(/^([^@]+)@(.+)$/); if(!m) return ''; return m[1].slice(0,Math.min(2,m[1].length-1)||1)+'***@'+m[2]; }
+function conMascara(o){ const x={...o}; if(x.email) x.emailMask=mascaraCorreo(x.email); else delete x.emailMask; return x; }
+const correoValido = c => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(c||'').trim());
 
 async function hashPin(pin, sal){
   const txt = sal + ':' + pin;
@@ -547,7 +618,22 @@ function crearLocal(){
     guardarEmpleado(id,o){ d.empleados[id]=o; guardar(); return Promise.resolve(id); },
     cambiarPin(id,hash){ d.empleados[id].pin=hash; delete d.empleados[id].pinProvisional; guardar(); return Promise.resolve(); },
     leerPerfiles(){ d.perfiles=d.perfiles||{}; return Promise.resolve(JSON.parse(JSON.stringify(d.perfiles))); },
-    guardarPerfil(id,o){ d.perfiles=d.perfiles||{}; d.perfiles[id]=o; guardar(); return Promise.resolve(); },
+    guardarPerfil(id,o){ d.perfiles=d.perfiles||{}; d.perfiles[id]=conMascara(o); guardar(); return Promise.resolve(); },
+    // Nóminas: PDF + datos por "token" (enlace privado), índice por empleado, firmadas y estado
+    guardarNomina(emp,t,info,pdf){ ['nominas','nominasPdf'].forEach(x=>d[x]=d[x]||{}); d.nominasPdf[t]={info,pdf}; (d.nominas[emp]=d.nominas[emp]||{})[t]={mes:info.mes, archivo:info.archivo||'', creada:info.creada}; guardar(); return Promise.resolve(); },
+    actualizarNomina(emp,t,pt){ const a=((d.nominas||{})[emp]||{})[t]; if(a){ Object.entries(pt).forEach(([x,v])=>{ if(v==null) delete a[x]; else a[x]=v; }); guardar(); } return Promise.resolve(); },
+    actualizarNominaInfo(t,pt){ const i=((d.nominasPdf||{})[t]||{}).info; if(i){ Object.assign(i,pt); guardar(); } return Promise.resolve(); },
+    leerNominas(){ return Promise.resolve(JSON.parse(JSON.stringify(d.nominas||{}))); },
+    leerNominasEstado(){ return Promise.resolve(JSON.parse(JSON.stringify(d.nominasEstado||{}))); },
+    leerNominaInfo(t){ return Promise.resolve(((d.nominasPdf||{})[t]||{}).info||null); },
+    leerNominaPdf(t){ return Promise.resolve(((d.nominasPdf||{})[t]||{}).pdf||null); },
+    leerNominaEstado(t){ return Promise.resolve((d.nominasEstado||{})[t]||null); },
+    leerNominaFirmada(t){ return Promise.resolve((d.nominasFirmadas||{})[t]||null); },
+    firmarNomina(t,o){ d.nominasFirmadas=d.nominasFirmadas||{}; d.nominasEstado=d.nominasEstado||{}; if(d.nominasFirmadas[t]) return Promise.reject(new Error('Ya estaba firmada')); d.nominasFirmadas[t]=o; d.nominasEstado[t]={ts:o.ts}; guardar(); return Promise.resolve(); },
+    borrarNomina(emp,t){ ['nominasPdf','nominasFirmadas','nominasEstado'].forEach(x=>{ if(d[x]) delete d[x][t]; }); if(d.nominas&&d.nominas[emp]) delete d.nominas[emp][t]; guardar(); return Promise.resolve(); },
+    proponerCorreo(emp,o){ d.correos=d.correos||{}; d.correos[emp]=o; guardar(); return Promise.resolve(); },
+    leerCorreosPend(){ return Promise.resolve(JSON.parse(JSON.stringify(d.correos||{}))); },
+    borrarCorreoPend(emp){ if(d.correos) delete d.correos[emp]; guardar(); return Promise.resolve(); },
     leerPerfil(id){ return Promise.resolve({...((d.perfiles||{})[id]||{})}); },
     leerAusencias(){ d.ausencias=d.ausencias||{}; return Promise.resolve(JSON.parse(JSON.stringify(d.ausencias))); },
     leerAusenciasDe(id){ return Promise.resolve(JSON.parse(JSON.stringify((d.ausencias||{})[id]||{}))); },
@@ -598,8 +684,22 @@ function crearFirebase(cfg){
       const per=a.val()||{}, lab=b.val()||{}, out={};
       new Set([...Object.keys(per),...Object.keys(lab)]).forEach(id=>{ out[id]={...(per[id]||{}), ...(lab[id]||{})}; });
       return out; }); },
-    guardarPerfil(id,o){ const lab={}, per={}; Object.entries(o).forEach(([k,v])=>{ (CAMPOS_LABORALES.includes(k)?lab:per)[k]=v; });
+    guardarPerfil(id,o){ const lab={}, per={}; Object.entries(conMascara(o)).forEach(([k,v])=>{ (CAMPOS_LABORALES.includes(k)?lab:per)[k]=v; });
       return Promise.all([R('laboral/'+id).set(lab), R('perfiles/'+id).set(per)]); },
+    guardarNomina(emp,t,info,pdf){ return R('nominasPdf/'+t).set({info,pdf}).then(()=>R('nominas/'+emp+'/'+t).set({mes:info.mes, archivo:info.archivo||'', creada:info.creada})); },
+    actualizarNomina(emp,t,pt){ return R('nominas/'+emp+'/'+t).update(pt); },
+    actualizarNominaInfo(t,pt){ return R('nominasPdf/'+t+'/info').update(pt); },
+    leerNominas(){ return R('nominas').once('value').then(s=>s.val()||{}); },
+    leerNominasEstado(){ return R('nominasEstado').once('value').then(s=>s.val()||{}); },
+    leerNominaInfo(t){ return R('nominasPdf/'+t+'/info').once('value').then(s=>s.val()); },
+    leerNominaPdf(t){ return R('nominasPdf/'+t+'/pdf').once('value').then(s=>s.val()); },
+    leerNominaEstado(t){ return R('nominasEstado/'+t).once('value').then(s=>s.val()); },
+    leerNominaFirmada(t){ return R('nominasFirmadas/'+t).once('value').then(s=>s.val()); },
+    firmarNomina(t,o){ return R('nominasFirmadas/'+t).set(o).then(()=>R('nominasEstado/'+t).set({ts:o.ts})); },
+    borrarNomina(emp,t){ return Promise.all([R('nominasPdf/'+t).remove(), R('nominasFirmadas/'+t).remove(), R('nominasEstado/'+t).remove(), R('nominas/'+emp+'/'+t).remove()]); },
+    proponerCorreo(emp,o){ return R('correos/'+emp).set(o); },
+    leerCorreosPend(){ return R('correos').once('value').then(s=>s.val()||{}); },
+    borrarCorreoPend(emp){ return R('correos/'+emp).remove(); },
     leerPerfil(id){ return R('laboral/'+id).once('value').then(s=>s.val()||{}); },
     leerAusencias(){ return R('ausencias').once('value').then(s=>s.val()||{}); },
     leerAusenciasDe(id){ return R('ausencias/'+id).once('value').then(s=>s.val()||{}); },
@@ -630,6 +730,7 @@ function crearFirebase(cfg){
   };
 }
 
+if (new URLSearchParams(location.search).get('nomina')) document.getElementById('kiosco').classList.add('oculto');   // enlace de nómina: no enseñar la pantalla de fichar
 let DB, errorCarga = '';
 if (FIREBASE_CONFIG) {
   if (window.firebase) { try { DB = crearFirebase(FIREBASE_CONFIG); } catch(e){ errorCarga = 'Error al iniciar Firebase: '+e.message; } }
@@ -675,7 +776,7 @@ function estadoActual(regsHoy){
 }
 /* ---------- Jornada prevista, ausencias y vacaciones ---------- */
 const TIPOS_AUS = {vacaciones:'Vacaciones', asuntos:'Asuntos propios', baja:'Baja', permiso:'Permiso', otro:'Otro'};
-const CORTO_AUS = {vacaciones:'Vac.', asuntos:'A.P.', baja:'Baja', permiso:'Perm.', otro:'Aus.'};
+const CORTO_AUS = {vacaciones:'Vac.', asuntos:'A.P.', baja:'Baja', permiso:'Perm.', otro:'Aus.', ultimo:'último día'};
 const DIAS_SEM = [[1,'L'],[2,'M'],[3,'X'],[4,'J'],[5,'V'],[6,'S'],[0,'D']];
 const sumarDia = ts => { const x=new Date(ts); x.setDate(x.getDate()+1); return x.getTime(); };
 const numero = v => parseFloat(String(v??'').replace(',','.'));
@@ -714,6 +815,7 @@ function previstas(p, ausMap, desde, hasta, hechasHoy=0){
   const dias=diasReparto(p), porDia=hs/dias.length*3600000, fest=festivosSet();
   let d=inicioDia(desde), f=Math.min(inicioDia(hasta), inicioDia(hoyStr()));
   if(p.alta && inicioDia(p.alta)>d) d=inicioDia(p.alta);
+  if(p.bajaContrato && inicioDia(p.bajaContrato)<f) f=inicioDia(p.bajaContrato);   // después de su último día no se prevén horas
   if(CONFIG && CONFIG.inicioFichaje && inicioDia(CONFIG.inicioFichaje)>d) d=inicioDia(CONFIG.inicioFichaje);   // antes de empezar a fichar no se prevé nada
   let ms=0;
   const hoy=hoyStr();
@@ -817,7 +919,7 @@ const ESTADOS_SOL = {pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rech
 function coincidencias(empId, desde, hasta, ausTodas, solTodas){
   const mis = lugaresDe(EMPLEADOS[empId]||{}), out=[];
   Object.entries(EMPLEADOS).forEach(([id,e])=>{
-    if(id===empId || e.activo===false || !lugaresDe(e).some(l=>mis.includes(l))) return;
+    if(id===empId || !estaActivo(e) || !lugaresDe(e).some(l=>mis.includes(l))) return;
     Object.values((ausTodas||{})[id]||{}).forEach(a=>{ if(a.desde<=hasta && a.hasta>=desde) out.push(`${e.nombre}: ${TIPOS_AUS[a.tipo].toLowerCase()} ${fCortaISO(a.desde)}–${fCortaISO(a.hasta)}`); });
     Object.values((solTodas||{})[id]||{}).forEach(a=>{ if(a.estado==='pendiente' && a.desde<=hasta && a.hasta>=desde) out.push(`${e.nombre}: pidió ${fCortaISO(a.desde)}–${fCortaISO(a.hasta)} (pendiente)`); });
   });
@@ -952,7 +1054,7 @@ function regsHoyDe(id){ return REG_HOY.filter(r=>r.empId===id); }
 
 function pintarKiosco(){
   $('#k-tienda').textContent = tiendaTablet ? tiendaTablet : 'Registro de jornada';
-  const activos = Object.entries(EMPLEADOS).filter(([,e])=>e.activo!==false && !e.sinFichaje)
+  const activos = Object.entries(EMPLEADOS).filter(([,e])=>estaActivo(e) && !e.sinFichaje)
     .sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es'));
   const avisos=[];
   if (errorCarga) avisos.push(`<div class="aviso err">${esc(errorCarga)}</div>`);
@@ -1014,13 +1116,14 @@ function mostrarAcciones(id){
     ${(!tiendaTablet && lugaresDe(emp).length>1) ? `<p class="sub" style="margin-bottom:6px">¿Dónde estás trabajando?</p><div class="chips">${lugaresDe(emp).map(l=>`<button class="btn" data-lugar="${esc(l)}">${esc(l)}</button>`).join('')}</div><div class="msg-err" id="lug-err" style="text-align:left"></div>` : ''}
     <div class="acciones">${ACCIONES[est].map((t,i)=>`<button class="acc ${t}" data-t="${t}">${TIPOS[t]}</button>`).join('')}</div>
     <div class="ayuda-tecl">Con teclado: ${ACCIONES[est].map((t,i)=>(i+1)+' = '+TIPOS[t]).join(' · ')} · Esc para cancelar</div>
-    <div class="fila-btn" style="justify-content:space-between"><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-mis>📊 Mis horas</button><button class="btn" data-vac>🏖 Mis vacaciones</button><button class="btn" data-pin>🔑 Cambiar mi PIN</button></span><button class="btn" data-x>Cancelar</button></div>`);
+    <div class="fila-btn" style="justify-content:space-between"><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-mis>📊 Mis horas</button><button class="btn" data-vac>🏖 Mis vacaciones</button>${NOMINAS_ACTIVAS?'<button class="btn" data-correo>📧 Mi correo</button>':''}<button class="btn" data-pin>🔑 Cambiar mi PIN</button></span><button class="btn" data-x>Cancelar</button></div>`);
   m.autoCerrar(20);
   m.el.addEventListener('click', async e=>{
     if (e.target.dataset.x!=null) return m.cerrar();
     if (e.target.dataset.mis!=null) { m.cerrar(); return misHoras(id); }
     if (e.target.dataset.pin!=null) { m.cerrar(); return nuevoPinEmpleado(id, null, false); }
     if (e.target.dataset.vac!=null) { m.cerrar(); return misVacaciones(id); }
+    if (e.target.dataset.correo!=null) { m.cerrar(); return miCorreo(id); }
     if (e.target.dataset.lugar) { m.el.querySelectorAll('[data-lugar]').forEach(b=>b.classList.toggle('pri', b===e.target)); m.el.querySelector('#lug-err').textContent=''; return; }
     const t=e.target.dataset.t; if(!t) return;
     // Lugar: el del dispositivo; si no tiene, el del empleado (si tiene varios, el que elija)
@@ -1107,14 +1210,15 @@ function tocarAdmin(){ clearTimeout(timerAdmin); timerAdmin=setTimeout(salirAdmi
 function abrirAdmin(){
   $('#kiosco').classList.add('oculto'); $('#admin').classList.remove('oculto');
   rellenarSelects(); $('#s-tienda').value = tiendaTablet;
-  Promise.all([DB.leerPerfiles(), DB.leerAusencias(), DB.leerConfig(), DB.leerSolicitudes()]).then(([p,a,c,sl])=>{ PERFILES=p; AUSENCIAS=a; CONFIG=c; SOLICITUDES=sl; rellenarSelects(); pintarEmpleados(); pintarResumen(); pintarSolicitudes(); pintarCalendario(); pintarCentros(); });
+  Promise.all([DB.leerPerfiles(), DB.leerAusencias(), DB.leerConfig(), DB.leerSolicitudes()]).then(([p,a,c,sl])=>{ PERFILES=p; AUSENCIAS=a; CONFIG=c; SOLICITUDES=sl; rellenarSelects(); pintarEmpleados(); pintarResumen(); pintarSolicitudes(); pintarCalendario(); pintarCentros(); pintarNominas(); });
   $('#s-demo').classList.toggle('oculto', DB.modo!=='demo');
   $('#s-pinadmin').classList.toggle('oculto', DB.modo==='firebase');
   if(!$('#f-desde').value){ rango('mes'); }
   buscar(); pintarResumen(); tocarAdmin();
 }
 function salirAdmin(){
-  clearTimeout(timerAdmin); cerrarTodo(); PERFILES={}; AUSENCIAS={}; SOLICITUDES={}; FIRMAS={};
+  clearTimeout(timerAdmin); cerrarTodo(); PERFILES={}; AUSENCIAS={}; SOLICITUDES={}; FIRMAS={}; NOMINAS={}; NOM_ESTADO={}; CORREOS_PEND={}; REPARTO=[];
+  $('#n-reparto').innerHTML=''; $('#n-lista').innerHTML=''; $('#n-correos').innerHTML=''; $('#n-file').value='';
   if (DB.salir) DB.salir();   // cierra la sesión de administrador: el aparato vuelve a ser solo para fichar
   $('#admin').classList.add('oculto'); $('#kiosco').classList.remove('oculto'); pintarKiosco();
 }
@@ -1125,11 +1229,12 @@ document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',
   document.querySelectorAll('[data-panel]').forEach(p=>p.classList.toggle('oculto', p.dataset.panel!==b.dataset.tab));
   if(b.dataset.tab==='calendario') pintarCalendario();
   if(b.dataset.tab==='centros') pintarCentros();
+  if(b.dataset.tab==='nominas') pintarNominas();
 }));
 
 function empOrdenados(){ return Object.entries(EMPLEADOS).sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre,'es')); }
 function rellenarSelects(){
-  const opsEmp = empOrdenados().map(([id,e])=>`<option value="${id}">${esc(e.nombre)}${e.activo===false?' (baja)':''}</option>`).join('');
+  const opsEmp = empOrdenados().map(([id,e])=>`<option value="${id}">${esc(e.nombre)}${!estaActivo(e)?' (baja)':''}</option>`).join('');
   const keep = s => { const v=$(s).value; return v; };
   const v1=keep('#f-emp'), v2=keep('#i-emp'), v3=keep('#f-tienda');
   $('#f-emp').innerHTML = '<option value="">Todos</option>'+opsEmp; $('#f-emp').value=v1||'';
@@ -1141,6 +1246,7 @@ function rellenarSelects(){
   $('#s-lugares').value = LUGARES().join('\n');
   $('#s-festivos').value = (CONFIG.festivosTxt || '');
   $('#s-inicio').value = CONFIG.inicioFichaje || '';
+  $('#s-correo-url').value = CONFIG.urlCorreo || '';
   $('#s-dirs').innerHTML = LUGARES().map(L=>`<div><label>${esc(L)}</label><input data-dir="${esc(L)}" value="${esc(direccionDe(L))}" placeholder="Calle, número, ciudad"></div>`).join('');
   if(!$('#i-mes').value){ const n=new Date(); $('#i-mes').value=n.getFullYear()+'-'+pad(n.getMonth()+1); }
 }
@@ -1431,7 +1537,7 @@ async function pintarResumen(){
   const porEmp={};
   regs.forEach(r=>{ const k=claveDia(r.ts); ((porEmp[r.empId]=porEmp[r.empId]||{})[k]=porEmp[r.empId][k]||[]).push(r); });
   const lug=$('#r-lugar').value;
-  const emps=empOrdenados().filter(([id,e])=>((e.activo!==false && !e.sinFichaje) || porEmp[id]) && (!lug || lugaresDe(e).includes(lug)));
+  const emps=empOrdenados().filter(([id,e])=>((estaActivo(e) && !e.sinFichaje) || porEmp[id]) && (!lug || lugaresDe(e).includes(lug)));
   if(!emps.length){ $('#t-resumen').innerHTML='<tr><td class="sub">No hay empleados.</td></tr>'; return; }
   const totCol=cols.map(()=>0); let totGen=0;
   const actual = cols[0].de<=hoyStr() && hoyStr()<=cols[cols.length-1].ha;
@@ -1490,7 +1596,7 @@ $('#i-gen').onclick=async ()=>{
   const ini=new Date(y,mo-1,1).getTime(), fin=new Date(y,mo,0,23,59,59,999).getTime(), nd=new Date(y,mo,0).getDate();
   const regs=(await DB.consultar(ini,fin)).filter(r=>!r.anulado);
   const sel=$('#i-emp').value;
-  let ids = sel ? [sel] : empOrdenados().filter(([id,e])=>(e.activo!==false && !e.sinFichaje) || regs.some(r=>r.empId===id)).map(([id])=>id);
+  let ids = sel ? [sel] : empOrdenados().filter(([id,e])=>(estaActivo(e) && !e.sinFichaje) || regs.some(r=>r.empId===id)).map(([id])=>id);
   if(!ids.length) return toast('No hay empleados');
   const nomMes=new Date(y,mo-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
   let html='';
@@ -1521,7 +1627,8 @@ $('#i-gen').onclick=async ()=>{
 const CONTRATOS=['Indefinido','Temporal','Fijo discontinuo','Prácticas / formación','Otro'];
 const CAMPOS_PERFIL=['nombreCompleto','dni','nss','nacimiento','telefono','email','direccion','puesto','alta','bajaContrato','contrato','horasSemana','horario','vacAnuales','vacComputo','emergNombre','emergTel','notas'];
 function pintarEmpleados(){
-  const l=empOrdenados();
+  pintarVacantes();
+  const hoyE=hoyStr(), l=empOrdenados().sort((a,b)=>(estaActivo(a[1],hoyE)?0:1)-(estaActivo(b[1],hoyE)?0:1));   // los que ya no están, al final
   $('#t-emp').innerHTML = l.length ? '<tr><th>Nombre</th><th>Puesto</th><th>Lugar de trabajo</th><th>Teléfono</th><th class="num">Jornada</th><th class="num">Vacaciones</th><th>Estado</th><th></th></tr>'+l.map(([id,e])=>{
     const p=PERFILES[id]||{};
     return `<tr><td><b>${esc(e.nombre)}</b>${p.nombreCompleto?`<div class="sub" style="margin:0;font-size:.8rem">${esc(p.nombreCompleto)}</div>`:''}</td>
@@ -1529,7 +1636,7 @@ function pintarEmpleados(){
      <td>${p.telefono?`<a href="tel:${esc(p.telefono)}">${esc(p.telefono)}</a>`:'—'}</td>
      <td class="num">${p.horasSemana?esc(p.horasSemana)+' h/sem':'—'}${Number(e.margenEntrada)?`<div class="sub" style="margin:0;font-size:.78rem">+${e.margenEntrada} min entrada</div>`:''}${e.contarDesdeHorario&&(e.horasEntrada||[]).length?`<div class="sub" style="margin:0;font-size:.78rem">Entrada ${e.horasEntrada.join(' y ')}${Object.entries(e.horasEntradaDia||{}).map(([d,h])=>' · '+['D','L','M','X','J','V','S'][d]+' '+h.join(' y ')).join('')}</div>`:''}</td>
      <td class="num">${(()=>{ const y=new Date().getFullYear(), u=vacacionesUsadas(p,AUSENCIAS[id],y), t=vacCorresponden(p,y); return `quedan <b>${t-u}</b> de ${t}`; })()}</td>
-     <td>${e.activo===false?'<span class="flag">Baja</span>':'<span class="flag admin">Activo</span>'}${e.sinFichaje?'<span class="flag">No ficha</span>':''}</td>
+     <td>${e.activo===false?'<span class="flag">Baja</span>':e.fechaBaja&&e.fechaBaja<hoyStr()?`<span class="flag">Baja desde ${fechaES(claveDia(sumarDia(inicioDia(e.fechaBaja))))}</span>`:e.fechaBaja?`<span class="flag admin">Activo</span><span class="flag off">Último día ${fechaES(e.fechaBaja)}</span>`:'<span class="flag admin">Activo</span>'}${e.sinFichaje?'<span class="flag">No ficha</span>':''}</td>
      <td class="num"><button class="btn peq" data-ed="${id}">Ver perfil</button></td></tr>`;}).join('') : '<tr><td class="sub">Aún no hay empleados.</td></tr>';
 }
 $('#t-emp').addEventListener('click', e=>{ if(e.target.dataset.ed) formEmpleado(e.target.dataset.ed); });
@@ -1563,6 +1670,7 @@ function formEmpleado(id){
       <div class="check" style="margin-top:34px"><input type="checkbox" id="em-act" ${e.activo!==false?'checked':''}><span>Activo</span></div>
       <div><label>Color en el calendario</label><input type="color" id="em-color" value="${id?colorEmp(id):PALETA_PERSONAS[Object.keys(EMPLEADOS).length%PALETA_PERSONAS.length]}" style="height:42px;padding:4px"></div>
     </div>
+    ${id?`<div id="em-baja" style="margin-top:12px">${htmlBaja(id)}</div>`:''}
     <div class="check" style="margin-top:12px"><input type="checkbox" id="em-sinf" ${e.sinFichaje?'checked':''}><span><b>No ficha</b> (solo se apunta en qué centro está cada día; no sale en la pantalla de fichar ni en las horas)</span></div>
     <div id="em-sinf-box" style="${e.sinFichaje?'':'display:none'}">
       <label>Dónde está normalmente cada día</label>
@@ -1594,7 +1702,7 @@ function formEmpleado(id){
       ${inp('nss','Nº afiliación Seguridad Social')}
       ${inp('nacimiento','Fecha de nacimiento','type="date"')}
       ${inp('telefono','Teléfono','type="tel"')}
-      ${inp('email','Email','type="email"')}
+      ${inp('email','Email personal (aquí le llegan las nóminas)','type="email"')}
     </div>
     <label>Dirección</label><input id="pf-direccion" value="${v('direccion')}">
 
@@ -1698,6 +1806,10 @@ function formEmpleado(id){
   }
   m.el.addEventListener('click', async ev=>{
     if(ev.target.dataset.x!=null) return m.cerrar();
+    if(ev.target.dataset.baja!=null || ev.target.dataset.anularBaja!=null){
+      const tras=()=>{ const b=m.el.querySelector('#em-baja'); if(b) b.innerHTML=htmlBaja(id); const pb=m.el.querySelector('#pf-bajaContrato'); if(pb) pb.value=(PERFILES[id]||{}).bajaContrato||''; };
+      return ev.target.dataset.baja!=null ? darDeBaja(id, tras) : anularBaja(id, tras);
+    }
     if(ev.target.dataset.pin0!=null){
       if(!await confirmar('El PIN de '+e.nombre+' volverá a ser 0000 y la próxima vez que entre tendrá que elegir uno nuevo.','Sí, poner 0000')) return;
       const o={...EMPLEADOS[id], pin:await hashPin(PIN_INICIAL,id), pinProvisional:true};
@@ -1775,6 +1887,7 @@ function altaRapida(){
   const m=abrirModal(`<h3>Nuevo empleado</h3>
     <p class="sub">Solo lo básico. Los datos personales, vacaciones, etc. los puedes completar después en su ficha.</p>
     <label>Nombre</label><input id="ar-nom" placeholder="Ej.: Conchi" autocomplete="off">
+    ${vacantesAbiertas().length?`<label>¿Viene a cubrir un puesto libre?</label><select id="ar-vac"><option value="">No, es un puesto nuevo</option>${vacantesAbiertas().map(([k,v])=>`<option value="${k}">Sí: ${esc(v.puesto||'puesto')}${v.lugar?' · '+esc(v.lugar):''}${v.sale?' (sustituye a '+esc(v.sale.nombre)+')':''}</option>`).join('')}</select>`:''}
     <label>Fecha de alta en la empresa <span style="font-weight:400">(para calcular sus vacaciones; si lleva más de un año, puedes dejarla vacía)</span></label>
     <input id="ar-alta" type="date" style="width:auto">
     <label>Lugar de trabajo</label>
@@ -1814,8 +1927,11 @@ function altaRapida(){
     const hEnt=[g('#ar-h1').value, g('#ar-h2').value].filter(Boolean);
     await DB.guardarEmpleado(id,{nombre:nom, lugares:lugs, tienda:lugs[0], activo:true, margenEntrada:mg, horasEntrada:hEnt, contarDesdeHorario:hEnt.length>0, pin:await hashPin(pin,id), pinProvisional:true});
     const perfil={horasSemana:String(numero(hs)), diasSemana:dias, vacAnuales:'30', vacComputo:'naturales', ...(alta?{alta}:{})};
+    const kv=(g('#ar-vac')||{}).value, vs={...((CONFIG&&CONFIG.vacantes)||{})}, vac=kv?vs[kv]:null;
+    if(vac && vac.puesto) perfil.puesto=vac.puesto;
     await DB.guardarPerfil(id,perfil); PERFILES[id]=perfil;
-    await DB.auditar({accion:'alta empleado', empId:id, nombre:nom});
+    if(vac){ vs[kv]={...vac, cubierta:{id, nombre:nom, desde:alta||hoyStr()}}; await guardarVacantes(vs); pintarCentros(); pintarCalendario(); }
+    await DB.auditar({accion:'alta empleado', empId:id, nombre:nom, ...(vac?{cubre:vac.puesto}:{})});
     m.cerrar(); pintarEmpleados(); pintarResumen();
     if(t.dataset.ok==='ficha') { EMPLEADOS[id]=EMPLEADOS[id]||{nombre:nom,lugares:lugs,tienda:lugs[0],activo:true}; formEmpleado(id); }
     const a=abrirModal(`<h3>✅ ${esc(nom)} dado de alta</h3><p class="sub">Su PIN provisional es:</p>
@@ -1825,6 +1941,84 @@ function altaRapida(){
     a.el.addEventListener('click',e=>{ if(e.target.dataset.x!=null) a.cerrar(); });
   });
 }
+
+/* ---------- Baja en la empresa y puestos por cubrir ---------- */
+function htmlBaja(id){
+  const e=EMPLEADOS[id]||{};
+  if(!e.fechaBaja) return `<button class="btn peq peligro" type="button" data-baja>Dar de baja en la empresa…</button>
+    <span class="sub" style="font-size:.8rem;margin-left:6px">Cuando deja de trabajar aquí (fin de contrato, se va…). No es la baja médica: esa se pone abajo en «Vacaciones y ausencias».</span>`;
+  const pasada=e.fechaBaja<hoyStr();
+  return `<div class="aviso-coin" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0">
+    <span>🚪 <b>Baja en la empresa</b>: su último día ${pasada?'fue':'es'} el <b>${fechaES(e.fechaBaja)}</b>${e.motivoBaja?' · '+esc(e.motivoBaja):''}.<br>${pasada?'Ya no sale en la pantalla de fichar.':'Hasta ese día sigue fichando con normalidad.'}</span>
+    <button class="btn peq" type="button" data-anular-baja>Anular la baja</button></div>`;
+}
+function darDeBaja(id, alTerminar){
+  const e=EMPLEADOS[id], p=PERFILES[id]||{};
+  const m=abrirModal(`<h3>Dar de baja a ${esc(e.nombre)}</h3>
+    <p class="sub">Deja de trabajar en la empresa. Hasta su último día sigue saliendo para fichar; desde el día siguiente desaparece de la pantalla de fichar. Sus fichajes, vacaciones y documentos se guardan.</p>
+    <label>Último día que trabaja</label><input type="date" id="bj-fecha" value="${hoyStr()}" style="width:auto">
+    <label>Motivo (opcional)</label><input id="bj-mot" placeholder="Fin de contrato, baja voluntaria…">
+    <div class="check"><input type="checkbox" id="bj-vac" checked><span><b>Hay que contratar a otra persona para su puesto</b><br><span class="sub" style="font-size:.82rem">Te avisará de que falta una persona desde el día siguiente hasta que des de alta a quien le sustituya.</span></span></div>
+    <div class="grid2" id="bj-vac-box">
+      <div><label>Puesto que queda libre</label><input id="bj-puesto" value="${esc(p.puesto||'')}" placeholder="Repartidor, dependienta…"></div>
+      <div><label>Centro</label><select id="bj-lugar">${opcLugares()}</select></div>
+    </div>
+    <div class="msg-err" id="bj-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn peligro" data-ok>Dar de baja</button></div>`);
+  const g=s=>m.el.querySelector(s);
+  if(lugaresDe(e)[0]) g('#bj-lugar').value=lugaresDe(e)[0];
+  g('#bj-vac').addEventListener('change',ev=>{ g('#bj-vac-box').style.display=ev.target.checked?'':'none'; });
+  m.el.addEventListener('click', async ev=>{
+    if(ev.target.dataset.x!=null) return m.cerrar();
+    if(ev.target.dataset.ok==null) return;
+    const f=g('#bj-fecha').value, mot=g('#bj-mot').value.trim(), vac=g('#bj-vac').checked, puesto=g('#bj-puesto').value.trim(), lugar=g('#bj-lugar').value;
+    if(!f) return g('#bj-err').textContent='Pon su último día de trabajo';
+    if(vac && !puesto) return g('#bj-err').textContent='Escribe el puesto que queda libre (p. ej. Repartidor)';
+    ev.target.disabled=true;
+    const o={...EMPLEADOS[id], fechaBaja:f}; if(mot) o.motivoBaja=mot; else delete o.motivoBaja;
+    await DB.guardarEmpleado(id,o); EMPLEADOS[id]=o;
+    const perfil={...p, bajaContrato:f}; if(!perfil.puesto && puesto) perfil.puesto=puesto;
+    await DB.guardarPerfil(id,perfil); PERFILES[id]=perfil;
+    if(vac){ const vs={...((CONFIG&&CONFIG.vacantes)||{})}; vs[DB.nuevoId()]={puesto, lugar, desde:claveDia(sumarDia(inicioDia(f))), sale:{id, nombre:e.nombre}, creada:Date.now()}; await guardarVacantes(vs); }
+    await DB.auditar({accion:'baja en la empresa', empId:id, nombre:e.nombre, fechaBaja:f, motivo:mot, vacante:vac?puesto:null});
+    m.cerrar(); toast(`${esc(e.nombre)} dado de baja. Último día: ${fechaES(f)}`+(vac?`<br>Desde el ${fechaES(claveDia(sumarDia(inicioDia(f))))} falta 1 ${esc(puesto.toLowerCase())}`:''), true);
+    refrescarPlantilla(); if(alTerminar) alTerminar();
+  });
+}
+async function anularBaja(id, alTerminar){
+  const e=EMPLEADOS[id]; if(!e||!e.fechaBaja) return;
+  const vs={...((CONFIG&&CONFIG.vacantes)||{})}, suyas=Object.keys(vs).filter(k=>vs[k].sale && vs[k].sale.id===id && !vs[k].cubierta);
+  if(!await confirmar(`${e.nombre} volverá a estar en la plantilla como si no se hubiera ido.`+(suyas.length?' También se quita el aviso de puesto por cubrir.':''),'Sí, anular la baja')) return;
+  const o={...e}; delete o.fechaBaja; delete o.motivoBaja;
+  await DB.guardarEmpleado(id,o); EMPLEADOS[id]=o;
+  const p={...(PERFILES[id]||{})}; if(p.bajaContrato===e.fechaBaja){ delete p.bajaContrato; await DB.guardarPerfil(id,p); PERFILES[id]=p; }
+  if(suyas.length){ suyas.forEach(k=>delete vs[k]); await guardarVacantes(vs); }
+  await DB.auditar({accion:'anular baja en la empresa', empId:id, nombre:e.nombre});
+  toast('Baja anulada', true); refrescarPlantilla(); if(alTerminar) alTerminar();
+}
+function refrescarPlantilla(){ pintarEmpleados(); rellenarSelects(); pintarCentros(); pintarCalendario(); pintarResumen(); }
+// Tarjeta de la pestaña Empleados con los puestos por cubrir y las bajas que vienen
+function pintarVacantes(){
+  const box=$('#e-vacantes'); if(!box) return;
+  const hoy=hoyStr(), abiertas=vacantesAbiertas().sort((a,b)=>a[1].desde.localeCompare(b[1].desde));
+  const proximas=empOrdenados().filter(([,e])=>e.fechaBaja && e.fechaBaja>=hoy && e.activo!==false);
+  if(!abiertas.length && !proximas.length){ box.classList.add('oculto'); box.innerHTML=''; return; }
+  box.classList.remove('oculto');
+  box.innerHTML = (abiertas.length?`<strong>⚠ Puestos por cubrir</strong><ul class="aus-lista">${abiertas.map(([k,v])=>`<li style="flex-wrap:wrap"><span style="flex:1;min-width:200px">${v.desde<=hoy?'Falta':'Faltará'} <b>1 ${esc((v.puesto||'persona').toLowerCase())}</b>${v.lugar?' en <b>'+esc(v.lugar)+'</b>':''} desde el <b>${fechaES(v.desde)}</b>${v.sale?` <span class="sub" style="margin:0;font-size:.82rem">(sale ${esc(v.sale.nombre)})</span>`:''}</span>
+      <button class="btn peq" data-vac-cub="${k}">Ya está cubierto</button><button class="btn peq peligro" data-vac-del="${k}" title="Quitar el aviso">🗑</button></li>`).join('')}</ul>
+      <p class="sub" style="font-size:.8rem;margin:0">Se cubre solo cuando das de alta a alguien con «＋ Nuevo empleado» y eliges que viene a cubrir este puesto.</p>`:'')
+    + (proximas.length?`<strong style="display:block;margin-top:${abiertas.length?14:0}px">Próximas bajas</strong><ul class="aus-lista">${proximas.map(([id,e])=>`<li><span style="flex:1"><b>${esc(e.nombre)}</b>: último día el ${fechaES(e.fechaBaja)}${e.motivoBaja?' · '+esc(e.motivoBaja):''}</span><button class="btn peq" data-ed="${id}">Ver ficha</button></li>`).join('')}</ul>`:'');
+}
+$('#e-vacantes').addEventListener('click', async ev=>{
+  const t=ev.target;
+  if(t.dataset.ed) return formEmpleado(t.dataset.ed);
+  const k=t.dataset.vacCub||t.dataset.vacDel; if(!k) return;
+  const vs={...((CONFIG&&CONFIG.vacantes)||{})}, v=vs[k]; if(!v) return;
+  if(t.dataset.vacDel){ if(!await confirmar('Quitar el aviso de que falta 1 '+(v.puesto||'persona').toLowerCase()+'.','Sí, quitar')) return; delete vs[k]; }
+  else vs[k]={...v, cubierta:{desde:hoyStr()}};
+  await guardarVacantes(vs); await DB.auditar({accion:t.dataset.vacDel?'quitar puesto por cubrir':'puesto cubierto', puesto:v.puesto, lugar:v.lugar});
+  refrescarPlantilla();
+});
 
 function antig(alta){
   const a=new Date(inicioDia(alta)), n=new Date();
@@ -1846,10 +2040,11 @@ $('#cal-lugar').onchange=()=>pintarCalendario(); $('#cal-pend').onchange=()=>pin
 function nombresFestivos(){ const o={}; (CONFIG.festivosTxt||'').split('\n').forEach(l=>{ const m=l.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\s*(.*)$/); if(m) o[m[3]+'-'+pad(m[2])+'-'+pad(m[1])]=m[4]; }); return o; }
 function datosCalendario(ini, fin){
   const lug=$('#cal-lugar').value, verPend=$('#cal-pend').checked;
-  const emps=empOrdenados().filter(([,e])=>e.activo!==false && (!lug || lugaresDe(e).includes(lug)));
+  const emps=empOrdenados().filter(([,e])=>e.activo!==false && (!e.fechaBaja || e.fechaBaja>=ini) && (!lug || lugaresDe(e).includes(lug)));
   const items=[];
   emps.forEach(([id,e])=>{
     Object.values(AUSENCIAS[id]||{}).forEach(a=>{ if(a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta,color:colorEmp(id)}); });
+    if(e.fechaBaja && e.fechaBaja>=ini && e.fechaBaja<=fin) items.push({id,nombre:e.nombre,tipo:'ultimo',desde:e.fechaBaja,hasta:e.fechaBaja,color:colorEmp(id)});
     if(verPend) Object.values(SOLICITUDES[id]||{}).forEach(a=>{ if(a.estado==='pendiente' && a.desde<=fin && a.hasta>=ini) items.push({id,nombre:e.nombre,tipo:a.tipo,desde:a.desde,hasta:a.hasta,pend:true,color:colorEmp(id)}); });
   });
   return {emps, items};
@@ -1862,7 +2057,8 @@ function htmlMes(y, mo, items){
     const k=y+'-'+pad(mo+1)+'-'+pad(d), dw=new Date(y,mo,d).getDay();
     const del=items.filter(it=>it.desde<=k && it.hasta>=k).sort((a,b)=>(a.pend?1:0)-(b.pend?1:0) || a.nombre.localeCompare(b.nombre,'es'));
     h+=`<div class="dia ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''}"><div class="num"><span>${d}</span>${fest.has(k)?`<small>${esc(nf[k]||'Festivo')}</small>`:''}</div>
-      ${del.map(it=>`<span class="chip-cal ${it.pend?'pend-cal':''}" style="${it.pend?`border-color:${it.color};color:${it.color}`:`background:${it.color}`}" data-emp="${it.id}" title="${esc(it.nombre)} · ${TIPOS_AUS[it.tipo]}${it.pend?' (pendiente)':''}">${esc(it.nombre)}${it.tipo!=='vacaciones'?' · '+CORTO_AUS[it.tipo]:''}</span>`).join('')}</div>`;
+      ${del.map(it=>`<span class="chip-cal ${it.pend?'pend-cal':''}" style="${it.pend?`border-color:${it.color};color:${it.color}`:`background:${it.color}`}" data-emp="${it.id}" title="${esc(it.nombre)} · ${TIPOS_AUS[it.tipo]||'Último día en la empresa'}${it.pend?' (pendiente)':''}">${esc(it.nombre)}${it.tipo!=='vacaciones'?' · '+CORTO_AUS[it.tipo]:''}</span>`).join('')}
+      ${(()=>{ const f=faltasDia(k, $('#cal-lugar').value); return f.length?`<span class="chip-cal falta" title="Puesto sin cubrir${f.map(v=>v.sale?' · sale '+esc(v.sale.nombre):'').join('')}">Falta ${esc(textoFaltas(f))}</span>`:''; })()}</div>`;
   }
   return h+'</div>';
 }
@@ -1877,7 +2073,8 @@ function htmlAnio(y, items){
       const k=y+'-'+pad(mo+1)+'-'+pad(d), dw=new Date(y,mo,d).getDay();
       const del=items.filter(it=>it.desde<=k && it.hasta>=k);
       const tit=del.map(it=>it.nombre+(it.pend?' (pendiente)':'')).join(', ');
-      h+=`<div class="md ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''}" ${tit?`title="${esc(tit)}"`:''}><span>${d}</span><div class="barras">${del.slice(0,6).map(it=>`<i style="background:${it.color};${it.pend?'opacity:.4':''}"></i>`).join('')}</div></div>`;
+      const fal=faltasDia(k, $('#cal-lugar').value);
+      h+=`<div class="md ${dw===0?'dom':''} ${fest.has(k)?'fest':''} ${k===hoyStr()?'hoy':''} ${fal.length?'falta':''}" ${tit||fal.length?`title="${esc([tit, fal.length?'Falta '+textoFaltas(fal):''].filter(Boolean).join(' · '))}"`:''}><span>${d}</span><div class="barras">${del.slice(0,6).map(it=>`<i style="background:${it.color};${it.pend?'opacity:.4':''}"></i>`).join('')}</div></div>`;
     }
     h+='</div></div>';
   }
@@ -1887,6 +2084,7 @@ function leyendaCal(items){
   const vistos=[...new Map(items.map(it=>[it.id,it])).values()].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   return (vistos.length ? vistos.map(it=>`<span class="ley-per"><i style="background:${it.color}"></i>${esc(it.nombre)}</span>`).join('') : '<span class="sub" style="margin:0">Nadie de vacaciones en este periodo.</span>')
     + `<span class="ley-per"><i style="background:#ccc;opacity:.45;border:1px dashed #888"></i>Pendiente de aprobar</span><span class="cal-fest-ley">Festivo</span>`
+    + (vacantes().length?`<span class="chip-cal falta" style="display:inline-block">Falta…</span><span style="font-size:.78rem">puesto sin cubrir tras una baja</span>`:'')
     + `<span class="sub" style="margin:0;font-size:.75rem">A.P. = asuntos propios · Perm. = permiso</span>`;
 }
 function resumenCal(emps, ini, fin){
@@ -1980,7 +2178,7 @@ function dibujoFurgoneta(){
 /* Centros de trabajo: quién está ahora en cada uno (admin) */
 function pintarCentros(){
   if($('#admin').classList.contains('oculto')) return;
-  const hoy=hoyStr(), activos=empOrdenados().filter(([,e])=>e.activo!==false);
+  const hoy=hoyStr(), activos=empOrdenados().filter(([,e])=>estaActivo(e));
   const info={};   // estado de hoy de cada empleado
   activos.forEach(([id,e])=>{
     const regs=REG_HOY.filter(r=>r.empId===id && !r.anulado), est=estadoActual(regs);
@@ -2008,10 +2206,14 @@ function pintarCentros(){
         else if(i.est!=='fuera'){ det='Trabajando en '+esc(i.donde||'otro centro'); cls='otro'; }
         else if(i.regs.some(r=>r.tipo==='salida')){ det='Ya ha salido'; }
         else det = i.trabajaHoy ? 'Sin fichar' : 'Hoy no trabaja';
+        if(e.fechaBaja) det+=`<br><b style="color:var(--rojo)">último día ${fechaES(e.fechaBaja)}</b>`;
         return fila(id,e,det,cls); }).join('')
       : '<p class="sub" style="margin:0;font-size:.85rem">Sin empleados asignados.</p>';
     const dir=L?direccionDe(L):'';
-    return `<div class="centro">${L?dibujoCentro(L,iL):''}<h3>${esc(L||'Sin centro asignado')}<span class="cuenta ${aqui.length?'':'cero'}">${aqui.length} ahora</span></h3>
+    const faltan=L?faltasDia(hoy,L):[], vendran=L?vacantesAbiertas().map(([,v])=>v).filter(v=>v.lugar===L && v.desde>hoy):[];
+    const avisoFalta=(faltan.length?`<div class="aviso-coin">⚠ Falta ${esc(textoFaltas(faltan))} (${faltan.map(v=>'desde el '+fechaES(v.desde)+(v.sale?', sale '+esc(v.sale.nombre):'')).join('; ')})</div>`:'')
+      +(vendran.length?`<div class="aviso-coin" style="background:#fff4d6;color:#7a5600">A partir del ${vendran.map(v=>fechaES(v.desde)).join(', ')} faltará ${esc(textoFaltas(vendran))}</div>`:'');
+    return `<div class="centro">${L?dibujoCentro(L,iL):''}<h3>${esc(L||'Sin centro asignado')}<span class="cuenta ${aqui.length?'':'cero'}">${aqui.length} ahora</span></h3>${avisoFalta}
       ${L?(dir?`<a class="dir-centro" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dir)}" target="_blank" rel="noopener">📍 ${esc(dir)}</a>`:`<span class="dir-centro sin">📍 Sin dirección · añádela en Ajustes</span>`):''}
       <h4>Ahora aquí</h4>${ahora}<h4>Asignados a este centro</h4>${asig}</div>`;
   }).join('');
@@ -2087,6 +2289,326 @@ async function imprimirSolicitud(id, a){
   if(!partes.length) partes=repartoVacaciones(p, AUSENCIAS[id], a.desde, a.hasta).map(t=>({tipo:a.tipo, desde:t.desde, hasta:t.hasta, anio:t.anio}));
   imprimirDoc(partes.map(x=>docDeVacaciones(id, x)).join(''));
 }
+
+/* =====================================================================
+   NÓMINAS: se sube el PDF → al empleado le llega un correo con un enlace privado →
+   firma con el dedo → la copia firmada le llega a su correo (y otra a la empresa) y queda guardada aquí.
+   ===================================================================== */
+const URL_PDFLIB='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+const URL_PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const URL_PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const _scripts={};
+function cargarScript(u){ return _scripts[u] = _scripts[u] || new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src=u; s.onload=ok; s.onerror=()=>{ delete _scripts[u]; ko(new Error('no se pudo cargar una pieza de la app (¿sin internet?)')); }; document.head.appendChild(s); }); }
+async function pdfjs(){ await cargarScript(URL_PDFJS); pdfjsLib.GlobalWorkerOptions.workerSrc=URL_PDFJS_WORKER; return pdfjsLib; }
+async function pdflib(){ await cargarScript(URL_PDFLIB); return PDFLib; }
+const bytesAB64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); };
+const b64aBytes = b => { const s=atob(b), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+async function sha256Hex(u8){ try{ if(!(window.crypto&&crypto.subtle)) return ''; const h=await crypto.subtle.digest('SHA-256', u8); return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }catch(e){ return ''; } }
+const nuevoToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');
+const mesTexto = m => { if(!m) return ''; const [y,mm]=m.split('-').map(Number); return new Date(y,mm-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'}); };
+const enlaceNomina = t => location.origin+location.pathname+'?nomina='+t;
+const nombreArchivo = s => sinTildes(String(s||'')).replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');
+function descargarBytes(u8, nombre){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([u8],{type:'application/pdf'})); a.download=nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000); }
+function abrirPdf(u8){ const u=URL.createObjectURL(new Blob([u8],{type:'application/pdf'})); window.open(u,'_blank'); setTimeout(()=>URL.revokeObjectURL(u),120000); }
+
+// Llama al script de Google (Apps Script) que envía los correos. Solo recibe el "token": el script lee de Firebase
+// a qué correo va, así que nadie puede usarlo para mandar correos a otras direcciones.
+async function avisarCorreo(accion, token){
+  if(DB.modo==='demo') return {ok:false, demo:true, error:'modo demostración: no se envían correos'};
+  const url=(CONFIG&&CONFIG.urlCorreo)||'';
+  if(!url) return {ok:false, error:'falta configurar el correo (Ajustes → Correo para las nóminas)'};
+  try{ const r=await fetch(url,{method:'POST', body:JSON.stringify({accion, token})}); return await r.json(); }
+  catch(e){ return {ok:false, error:'no se pudo contactar con el script de correo'}; }
+}
+
+async function renderPdf(bytes, el){
+  try{
+    const lib=await pdfjs(), doc=await lib.getDocument({data:bytes.slice()}).promise; el.innerHTML='';
+    const ancho=Math.min(el.clientWidth||800, 900), k=Math.min(window.devicePixelRatio||1, 2);
+    for(let i=1;i<=doc.numPages;i++){
+      const pg=await doc.getPage(i), v0=pg.getViewport({scale:1}), v=pg.getViewport({scale:ancho/v0.width*k});
+      const cv=document.createElement('canvas'); cv.width=v.width; cv.height=v.height; el.appendChild(cv);
+      await pg.render({canvasContext:cv.getContext('2d'), viewport:v}).promise;
+    }
+  }catch(e){ el.innerHTML=`<p class="sub">No se puede mostrar aquí. Usa «Descargar el PDF» para verla.</p>`; }
+}
+
+// Añade al PDF original una hoja final de "recibí" con la firma, la fecha y la huella del original, y un pie en cada página
+async function pdfConRecibi(bytes, info, firmaPng, ts){
+  const {PDFDocument, StandardFonts, rgb}=await pdflib();
+  const hash=await sha256Hex(bytes);
+  const doc=await PDFDocument.load(bytes,{ignoreEncryption:true});
+  const font=await doc.embedFont(StandardFonts.Helvetica), bold=await doc.embedFont(StandardFonts.HelveticaBold);
+  const img=await doc.embedPng(b64aBytes(firmaPng.split(',')[1]));
+  const L = s => String(s||'').replace(/[^\x20-\x7E -ÿ]/g,'');   // solo letras que admite la fuente estándar
+  const fecha=new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const nom=L(info.nombreCompleto||info.nombre), color=rgb(.1,.12,.18), gris=rgb(.42,.42,.47);
+  doc.getPages().forEach(pg=>pg.drawText(L(`Recibí firmado electrónicamente por ${nom} el ${fecha} - ver hoja final`), {x:18, y:6, size:6.5, font, color:gris}));
+  const pg=doc.addPage([595.28, 841.89]); let y=770;
+  const linea=(t,o={})=>{ pg.drawText(L(t),{x:60, y, size:o.size||11, font:o.bold?bold:font, color:o.gris?gris:color}); y-=(o.salto||20); };
+  const partir=(t,max,size)=>{ const out=[]; let cur=''; L(t).split(' ').forEach(w=>{ const p=cur?cur+' '+w:w; if(font.widthOfTextAtSize(p,size)>max && cur){ out.push(cur); cur=w; } else cur=p; }); if(cur) out.push(cur); return out; };
+  linea('RECIBÍ DE NÓMINA',{size:17, bold:true, salto:34});
+  linea('Empresa: COLCHONERÍA BLÁZQUEZ S.L.');
+  linea('Trabajador/a: '+nom);
+  linea('Nómina de: '+info.mesTxt,{salto:30});
+  partir(`Declaro haber recibido la nómina de ${info.mesTxt} que figura en las páginas anteriores de este documento.`, 470, 11).forEach(l=>linea(l,{salto:16}));
+  y-=14; linea('Firmado electrónicamente el '+fecha,{salto:16});
+  if(hash){ linea('Huella del documento original (SHA-256):',{size:8, gris:true, salto:11}); linea(hash,{size:8, gris:true, salto:26}); }
+  const dm=img.scaleToFit(260,120); pg.drawImage(img,{x:60, y:y-dm.height, width:dm.width, height:dm.height}); y-=dm.height+6;
+  pg.drawLine({start:{x:60,y}, end:{x:330,y}, thickness:.8, color:gris}); y-=15;
+  linea('Fdo.: '+nom,{size:10});
+  return await doc.save();
+}
+
+/* ---------- Página que abre el empleado desde el correo ---------- */
+async function paginaNomina(t){
+  ['#kiosco','#admin'].forEach(s=>$(s).classList.add('oculto')); $('#nomina-pag').classList.remove('oculto');
+  document.title='Nómina para firmar · Colchonería Blázquez';
+  const c=$('#np-cuerpo'); c.innerHTML='<p class="sub">Cargando tu nómina…</p>';
+  const noValido='<div class="vacio">Este enlace no es válido o la nómina ya no está disponible.<br>Pregunta en la oficina.</div>';
+  if(!/^[a-f0-9]{32}$/.test(t||'')){ c.innerHTML=noValido; return; }
+  let info=null, estado=null;
+  try{ [info, estado]=await Promise.all([DB.leerNominaInfo(t), DB.leerNominaEstado(t)]); }catch(e){}
+  if(!info){ c.innerHTML=noValido; return; }
+  const cab=`<div class="np-caja"><div style="margin:0 0 4px;font-size:1.3rem;font-weight:700">Hola, ${esc((info.nombre||'').split(' ')[0])}</div><div class="sub" style="margin:0">Tu nómina de <b>${esc(info.mesTxt)}</b></div></div>`;
+  const nomPdf = fin => 'Nomina_'+nombreArchivo(info.mesTxt)+(fin||'')+'.pdf';
+  async function yaFirmada(r, firmado){
+    const est=estado || await DB.leerNominaEstado(t).catch(()=>null);
+    c.innerHTML=cab+`<div class="np-caja" style="text-align:center"><div style="font-size:3rem;line-height:1">✅</div><h3 style="margin:8px 0 4px">Nómina firmada</h3>
+      <p class="sub">${est&&est.ts?'Firmada el '+new Date(est.ts).toLocaleString('es-ES',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):''}</p>
+      ${r ? (r.ok ? `<p>Te hemos enviado la copia firmada a <b>${esc(mascaraCorreo(info.email))}</b>.</p>` : `<p class="sub">La firma está guardada, pero no se pudo enviar el correo${r.demo?' (modo demostración)':''}. Descárgala aquí; la oficina también la tiene.</p>`) : ''}
+      <button class="btn pri" id="np-desc-f" style="padding:14px 22px">⬇ Descargar la nómina firmada</button></div>`;
+    $('#np-desc-f').onclick=async ()=>{ let u8=firmado; if(!u8){ const f=await DB.leerNominaFirmada(t).catch(()=>null); if(!f) return toast('No se encontró la copia firmada'); u8=b64aBytes(f.pdf); } descargarBytes(u8, nomPdf('_firmada')); };
+  }
+  if(estado) return yaFirmada();
+  c.innerHTML=cab+`<div class="np-caja"><div class="np-pdf" id="np-pdf"><p class="sub">Cargando el documento…</p></div><button class="btn" id="np-desc">⬇ Descargar el PDF</button></div>
+    <div class="np-caja"><strong>Firmar el recibí</strong>
+      <p class="sub" style="font-size:.9rem;margin:6px 0 10px">Al firmar confirmas que <b>has recibido</b> tu nómina de ${esc(info.mesTxt)}. Firmar no significa estar de acuerdo con las cantidades: si ves algún error, coméntalo en la oficina.</p>
+      <div id="np-firma"></div>
+      <div class="msg-err" id="np-err" style="text-align:left"></div>
+      <div class="fila-btn"><button class="btn pri" id="np-ok" style="padding:14px 22px;font-size:1.05rem">Firmar y enviarme la copia</button></div>
+      <p class="sub" style="font-size:.8rem;margin:8px 0 0">${info.email?'La copia firmada te llegará a '+esc(mascaraCorreo(info.email))+'. ':''}La empresa también guarda una copia.</p></div>`;
+  let pdfB64=null; try{ pdfB64=await DB.leerNominaPdf(t); }catch(e){}
+  if(!pdfB64){ $('#np-pdf').innerHTML='<p class="msg-err">No se pudo cargar el documento. Inténtalo otra vez más tarde.</p>'; return; }
+  const bytes=b64aBytes(pdfB64);
+  $('#np-desc').onclick=()=>descargarBytes(bytes, nomPdf());
+  renderPdf(bytes, $('#np-pdf'));
+  const firma=panelFirma($('#np-firma'));
+  $('#np-ok').onclick=async ()=>{
+    const err=$('#np-err'), b=$('#np-ok'); err.textContent='';
+    if(firma.vacia()) return err.textContent='Firma en el recuadro con el dedo o con el ratón';
+    b.disabled=true; b.textContent='Firmando…';
+    try{
+      const ts=Date.now(), firmado=await pdfConRecibi(bytes, info, firma.imagen(), ts);
+      await DB.firmarNomina(t,{pdf:bytesAB64(firmado), ts, ua:navigator.userAgent.slice(0,200)});
+      estado={ts}; b.textContent='Enviando la copia…';
+      yaFirmada(await avisarCorreo('firmada', t), firmado);
+    }catch(e){ b.disabled=false; b.textContent='Firmar y enviarme la copia'; err.textContent='No se pudo firmar. Comprueba la conexión e inténtalo otra vez.'; console.error(e); }
+  };
+}
+
+/* ---------- El empleado pone su correo personal (lo confirma la oficina) ---------- */
+async function miCorreo(id){
+  const emp=EMPLEADOS[id]; let p={}; try{ p=await DB.leerPerfil(id); }catch(e){}
+  const m=abrirModal(`<h3>Mi correo personal</h3><p class="sub">Aquí te llegan las nóminas para firmar y la copia ya firmada.</p>
+    <div class="ficha-res"><div>Correo actual<b>${p.emailMask?esc(p.emailMask):'Ninguno'}</b></div></div>
+    <label>${p.emailMask?'Cambiarlo por':'Escribe tu correo'}</label><input id="mc-email" type="email" autocomplete="email" placeholder="tucorreo@gmail.com">
+    <label>Repítelo</label><input id="mc-email2" type="email" autocomplete="off">
+    <p class="sub" style="font-size:.8rem;margin:6px 0 0">La oficina lo confirmará antes de usarlo, para que nadie pueda cambiar el correo de otra persona.</p>
+    <div class="msg-err" id="mc-err"></div>
+    <div class="fila-btn"><button class="btn" data-x>Cancelar</button><button class="btn pri" data-ok>Guardar</button></div>`);
+  m.autoCerrar(120);
+  m.el.addEventListener('click', async e=>{
+    m.autoCerrar(120);
+    if(e.target.dataset.x!=null) return m.cerrar();
+    if(e.target.dataset.ok==null) return;
+    const a=m.el.querySelector('#mc-email').value.trim().toLowerCase(), b=m.el.querySelector('#mc-email2').value.trim().toLowerCase(), err=m.el.querySelector('#mc-err');
+    if(!correoValido(a)) return err.textContent='Ese correo no parece correcto';
+    if(a!==b) return err.textContent='Los dos correos no coinciden';
+    e.target.disabled=true;
+    try{ await DB.proponerCorreo(id,{email:a, ts:Date.now(), nombre:emp.nombre}); }
+    catch(x){ e.target.disabled=false; return err.textContent='No se pudo guardar (¿sin conexión?)'; }
+    DB.auditar({accion:'el empleado propone su correo personal', empId:id, nombre:emp.nombre}).catch(()=>{});
+    m.cerrar(); toast('Guardado. Cuando la oficina lo confirme, te llegarán ahí las nóminas.', true);
+  });
+}
+
+/* ---------- Pestaña Nóminas (administración) ---------- */
+let NOMINAS={}, NOM_ESTADO={}, CORREOS_PEND={}, REPARTO=[];
+if(!NOMINAS_ACTIVAS){ document.querySelector('.tabs button[data-tab="nominas"]').classList.add('oculto'); $('#s-correo-tarjeta').classList.add('oculto'); }
+async function pintarNominas(recargar=true){
+  if(!NOMINAS_ACTIVAS || $('#admin').classList.contains('oculto')) return;
+  if(recargar){
+    try{ [NOMINAS, NOM_ESTADO, CORREOS_PEND] = await Promise.all([DB.leerNominas(), DB.leerNominasEstado(), DB.leerCorreosPend()]); }
+    catch(e){ $('#n-avisos').innerHTML=`<div class="tarjeta aviso err" style="border-radius:var(--radio)">No se pudieron leer las nóminas. Falta poner las reglas nuevas de Firebase (mira PASOS-NOMINAS.txt en el Escritorio).</div>`; return; }
+  }
+  if(!$('#n-mes').value){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-(new Date().getDate()<20?1:0)); $('#n-mes').value=d.getFullYear()+'-'+pad(d.getMonth()+1); }
+  const av=[];
+  if(DB.modo==='demo') av.push('Modo demostración: no se envían correos de verdad. Usa «📋 Enlace» para probar cómo firma el empleado.');
+  else if(!CONFIG.urlCorreo) av.push('Falta configurar el envío de correos: sigue el archivo <b>PASOS-NOMINAS.txt</b> del Escritorio y pega la dirección en <b>Ajustes → Correo para las nóminas</b>.');
+  $('#n-avisos').innerHTML=av.map(a=>`<div class="tarjeta" style="background:#fff4d6;color:#7a5600">${a}</div>`).join('');
+  // Correos que han puesto los empleados y hay que confirmar
+  const cp=Object.entries(CORREOS_PEND||{});
+  const bd=$('#nom-badge'); bd.textContent=cp.length; bd.classList.toggle('oculto',!cp.length);
+  $('#n-correos').classList.toggle('oculto',!cp.length);
+  $('#n-correos').innerHTML = cp.length ? `<strong>📧 Correos personales por confirmar</strong><p class="sub" style="font-size:.85rem;margin:4px 0 6px">Los han escrito los empleados en la app. Confírmalos solo si sabes que son suyos: ahí les llegarán las nóminas.</p><ul class="aus-lista">${cp.map(([id,c])=>{ const e=EMPLEADOS[id]||{nombre:c.nombre||'?'}, ant=(PERFILES[id]||{}).email;
+      return `<li style="flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>${esc(e.nombre)}</b> quiere usar <b>${esc(c.email)}</b><div class="sub" style="margin:0;font-size:.8rem">${ant?'Ahora tiene: '+esc(ant):'Ahora no tiene correo'} · ${new Date(c.ts).toLocaleDateString('es-ES')}</div></span><button class="btn peq peligro" data-cor-no="${id}">Rechazar</button><button class="btn peq pri" data-cor-si="${id}">Confirmar</button></li>`; }).join('')}</ul>` : '';
+  // Lista de nóminas enviadas
+  const filas=[]; Object.entries(NOMINAS||{}).forEach(([emp,ns])=>Object.entries(ns||{}).forEach(([t,n])=>filas.push({emp, t, ...n, firmada:(NOM_ESTADO[t]||{}).ts})));
+  const meses=[...new Set(filas.map(f=>f.mes))].sort().reverse(), selM=$('#n-filtro-mes');
+  const vm = selM.dataset.ini ? selM.value : (meses[0]||''); selM.dataset.ini='1';
+  selM.innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>`<option value="${m}">${esc(mesTexto(m))}</option>`).join(''); selM.value=meses.includes(vm)?vm:'';
+  const fm=selM.value, fe=$('#n-filtro-est').value, nomE=id=>(EMPLEADOS[id]||{}).nombre||'?';
+  const l=filas.filter(f=>(!fm||f.mes===fm) && (!fe || (fe==='firm')===!!f.firmada)).sort((a,b)=>b.mes.localeCompare(a.mes) || nomE(a.emp).localeCompare(nomE(b.emp),'es'));
+  const hechas=filas.filter(f=>!fm||f.mes===fm), nf=hechas.filter(f=>f.firmada).length;
+  $('#n-lista').innerHTML = l.length ? `${hechas.length?`<div class="ficha-res" style="margin:0 0 8px"><div>Enviadas<b>${hechas.length}</b></div><div>Firmadas<b>${nf}</b></div><div>Sin firmar<b>${hechas.length-nf}</b></div></div>`:''}
+    <table><tr><th>Empleado</th><th>Mes</th><th>Correo</th><th>Estado</th><th></th></tr>${l.map(f=>{
+      const est = f.firmada ? `<span class="etq nfirm">Firmada</span><div class="sub" style="margin:2px 0 0;font-size:.78rem">${new Date(f.firmada).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : `<span class="etq npend">Sin firmar</span>`;
+      const cor = f.enviada ? 'Enviado el '+new Date(f.enviada).toLocaleDateString('es-ES')+(f.reenvios?` (${f.reenvios+1} veces)`:'') : f.errorCorreo ? `<span style="color:var(--rojo)">No enviado: ${esc(f.errorCorreo)}</span>` : '—';
+      return `<tr><td><b>${esc(nomE(f.emp))}</b>${f.archivo?`<div class="sub" style="margin:0;font-size:.75rem;max-width:260px;overflow:hidden;text-overflow:ellipsis">${esc(f.archivo)}</div>`:''}</td><td>${esc(mesTexto(f.mes))}</td><td style="font-size:.85rem">${cor}</td><td>${est}</td>
+        <td class="num" style="white-space:nowrap"><button class="btn peq" data-n-ver="${f.t}">Ver</button> ${f.firmada?`<button class="btn peq pri" data-n-firm="${f.t}">⬇ Firmada</button>`:`<button class="btn peq" data-n-reenv="${f.emp}|${f.t}">Reenviar</button>`} <button class="btn peq" data-n-link="${f.t}">📋 Enlace</button> <button class="btn peq peligro" data-n-del="${f.emp}|${f.t}" title="Borrar">🗑</button></td></tr>`; }).join('')}</table>
+    <p class="sub" style="font-size:.8rem;margin:8px 0 0">«📋 Enlace» copia el enlace privado de esa nómina, por si se la quieres mandar por WhatsApp. No lo compartas con nadie más: quien lo tenga puede verla.</p>`
+    : `<p class="sub">${filas.length?'No hay nóminas con este filtro.':'Todavía no se ha enviado ninguna nómina.'}</p>`;
+}
+$('#n-filtro-mes').onchange=()=>pintarNominas(false);
+$('#n-filtro-est').onchange=()=>pintarNominas(false);
+$('#n-mes').onchange=()=>pintarReparto();
+
+// Reparto de páginas: busca en el texto de cada página el DNI, el nombre y apellidos o el nombre corto de cada empleado
+function adivinarPaginas(textos, archivo){
+  const cand=empOrdenados().map(([id,e])=>{ const p=PERFILES[id]||{};
+    return {id, dni:(p.dni||'').toUpperCase().replace(/[^0-9A-Z]/g,''), comp:sinTildes(p.nombreCompleto||'').split(/[^a-z0-9]+/).filter(w=>w.length>=3), corto:sinTildes(e.nombre||'').split(/[^a-z0-9]+/).filter(w=>w.length>=3)}; });
+  const buscar = txt => {
+    const t=' '+sinTildes(txt).replace(/[^a-z0-9]+/g,' ')+' ', tj=sinTildes(txt).toUpperCase().replace(/[^0-9A-Z]/g,'');
+    let r=cand.filter(c=>c.dni.length>=8 && tj.includes(c.dni)); if(r.length===1) return {id:r[0].id, como:'DNI', seguro:true};
+    r=cand.filter(c=>c.comp.length>=2 && c.comp.every(w=>t.includes(' '+w+' '))); if(r.length===1) return {id:r[0].id, como:'nombre y apellidos', seguro:true};
+    r=cand.filter(c=>c.corto.length && c.corto.every(w=>t.includes(' '+w+' '))); if(r.length===1) return {id:r[0].id, como:'nombre', seguro:false};
+    return null;
+  };
+  const deArchivo=buscar(archivo.replace(/\.pdf$/i,'')); let ant=null;
+  return textos.map(tx=>{
+    let r=buscar(tx);
+    if(!r && ant) r={id:ant.id, como:'igual que la página anterior', seguro:ant.seguro};
+    if(!r && deArchivo) r={...deArchivo, como:'nombre del archivo'};
+    if(r) ant=r;
+    return r || {id:'', como:'', seguro:false};
+  });
+}
+$('#n-file').addEventListener('change', async ev=>{
+  const files=[...ev.target.files]; if(!files.length) return;
+  const box=$('#n-reparto'); box.innerHTML='<p class="sub">Leyendo los PDF…</p>';
+  try{
+    const lib=await pdfjs(); REPARTO=[];
+    for(const f of files){
+      if(f.size>12*1024*1024){ toast('«'+esc(f.name)+'» es demasiado grande (máximo 12 MB)'); continue; }
+      const bytes=new Uint8Array(await f.arrayBuffer()), doc=await lib.getDocument({data:bytes.slice()}).promise, textos=[];
+      for(let i=1;i<=doc.numPages;i++){ const tc=await (await doc.getPage(i)).getTextContent(); textos.push(tc.items.map(x=>x.str).join(' ')); }
+      REPARTO.push({nombre:f.name, bytes, paginas:adivinarPaginas(textos, f.name)});
+    }
+    pintarReparto();
+  }catch(e){ box.innerHTML=`<div class="aviso-coin">No se pudo leer el PDF. ¿Seguro que es un PDF y no está protegido con contraseña?</div>`; console.error(e); }
+});
+function gruposReparto(){ const g={}; REPARTO.forEach((f,fi)=>f.paginas.forEach((p,pi)=>{ if(p.id) (g[p.id]=g[p.id]||[]).push({fi,pi}); })); return g; }
+function pintarReparto(){
+  const box=$('#n-reparto'); if(!REPARTO.length){ box.innerHTML=''; return; }
+  const opts=sel=>'<option value="">— No enviar —</option>'+empOrdenados().map(([id,e])=>`<option value="${id}" ${id===sel?'selected':''}>${esc(e.nombre)}${!estaActivo(e)?' (baja)':''}</option>`).join('');
+  const g=gruposReparto(), ids=Object.keys(g), sinCorreo=ids.filter(id=>!(PERFILES[id]||{}).email), mes=$('#n-mes').value;
+  box.innerHTML = REPARTO.map((f,fi)=>`<div class="rep-file"><b>📄 ${esc(f.nombre)}</b> <span class="sub" style="margin:0">· ${f.paginas.length} página${f.paginas.length>1?'s':''}</span>
+      <div class="tabla-scroll"><table style="margin-top:6px;width:auto">${f.paginas.map((p,pi)=>`<tr><td style="white-space:nowrap">Página ${pi+1}</td><td><select data-rep="${fi}|${pi}" style="width:auto;min-width:170px">${opts(p.id)}</select></td><td><span class="${p.id&&p.seguro?'conf-alta':'conf-baja'}">${p.id?(p.seguro?'✓ ':'¿? ')+esc(p.como):'⚠ No sé de quién es: elígelo'}</span></td></tr>`).join('')}</table></div></div>`).join('')
+    + (ids.length ? `<div class="ficha-res">${ids.map(id=>`<div>${esc((EMPLEADOS[id]||{}).nombre||'?')}<b>${g[id].length} pág.</b></div>`).join('')}</div>
+      ${sinCorreo.length?`<div class="aviso-coin">Sin correo personal: <b>${sinCorreo.map(id=>esc(EMPLEADOS[id].nombre)).join(', ')}</b>. Su nómina se guarda igual y puedes copiar su enlace; ponle el correo en su ficha o pídele que lo meta en la app (📧 Mi correo).</div>`:''}
+      <div class="fila-btn"><button class="btn" data-rep-x>Cancelar</button><button class="btn pri" data-rep-env>Enviar ${ids.length} nómina${ids.length>1?'s':''}${mes?' de '+esc(mesTexto(mes)):''}</button></div>`
+      : '<p class="sub">Elige de quién es cada página.</p><div class="fila-btn"><button class="btn" data-rep-x>Cancelar</button></div>');
+}
+$('#n-reparto').addEventListener('change', ev=>{
+  const r=ev.target.dataset.rep; if(!r) return; const [fi,pi]=r.split('|').map(Number);
+  REPARTO[fi].paginas[pi]={id:ev.target.value, como:'elegido a mano', seguro:true}; pintarReparto();
+});
+$('#n-reparto').addEventListener('click', ev=>{
+  if(ev.target.dataset.repX!=null){ REPARTO=[]; $('#n-file').value=''; return pintarReparto(); }
+  if(ev.target.dataset.repEnv!=null) enviarReparto(ev.target);
+});
+async function enviarReparto(btn){
+  const mes=$('#n-mes').value; if(!mes) return toast('Elige el mes de la nómina');
+  const g=gruposReparto(), ids=Object.keys(g); if(!ids.length) return;
+  const repes=ids.filter(id=>Object.values(NOMINAS[id]||{}).some(n=>n.mes===mes));
+  if(repes.length && !await confirmar(`${repes.map(id=>EMPLEADOS[id].nombre).join(', ')} ya ${repes.length>1?'tienen':'tiene'} nómina de ${mesTexto(mes)}. Se enviará otra además de la que ya tiene.`,'Enviar igualmente','Ya enviada antes')) return;
+  if(!await confirmar(`Se ${ids.length>1?'enviarán':'enviará'} ${ids.length} nómina${ids.length>1?'s':''} de ${mesTexto(mes)}: ${ids.map(id=>EMPLEADOS[id].nombre).join(', ')}.`,'Sí, enviar','Enviar nóminas')) return;
+  btn.disabled=true; const res=[];
+  try{
+    const {PDFDocument}=await pdflib();
+    for(const id of ids){
+      btn.textContent=`Enviando… (${res.length+1} de ${ids.length})`;
+      const e=EMPLEADOS[id], p=PERFILES[id]||{};
+      try{
+        const partes=g[id], fis=[...new Set(partes.map(x=>x.fi))]; let bytes, archivo;
+        if(fis.length===1 && partes.length===REPARTO[fis[0]].paginas.length){ bytes=REPARTO[fis[0]].bytes; archivo=REPARTO[fis[0]].nombre; }   // el archivo entero es suyo: se guarda tal cual
+        else {
+          const nd=await PDFDocument.create();
+          for(const fi of fis){ const src=await PDFDocument.load(REPARTO[fi].bytes,{ignoreEncryption:true}); (await nd.copyPages(src, partes.filter(x=>x.fi===fi).map(x=>x.pi))).forEach(pg=>nd.addPage(pg)); }
+          bytes=await nd.save(); archivo=fis.map(fi=>REPARTO[fi].nombre).join(' + ')+' (pág. '+partes.map(x=>x.pi+1).join(', ')+')';
+        }
+        const t=nuevoToken(), info={empId:id, nombre:e.nombre, nombreCompleto:p.nombreCompleto||e.nombre, mes, mesTxt:mesTexto(mes), email:p.email||'', archivo, creada:Date.now()};
+        await DB.guardarNomina(id, t, info, bytesAB64(bytes));
+        const r = info.email ? await avisarCorreo('enviar', t) : {ok:false, error:'no tiene correo personal'};
+        await DB.actualizarNomina(id, t, r.ok ? {enviada:Date.now()} : {errorCorreo:r.error||'error'});
+        DB.auditar({accion:'enviar nómina', empId:id, nombre:e.nombre, mes, correo:!!r.ok}).catch(()=>{});
+        res.push({id, ok:!!r.ok, error:r.error, guardada:true});
+      }catch(x){ console.error(x); res.push({id, ok:false, error:'no se pudo guardar ('+(x.message||x)+')', guardada:false}); }
+    }
+  }catch(x){ toast('No se pudo preparar el envío: '+esc(x.message||x)); }
+  REPARTO=[]; $('#n-file').value=''; pintarReparto(); await pintarNominas();
+  const ok=res.filter(r=>r.ok), mal=res.filter(r=>!r.ok);
+  const m=abrirModal(`<h3>Nóminas de ${esc(mesTexto(mes))}</h3>
+    ${ok.length?`<p>✅ Correo enviado a: <b>${ok.map(r=>esc(EMPLEADOS[r.id].nombre)).join(', ')}</b></p>`:''}
+    ${mal.length?`<p>⚠ Sin correo:</p><ul>${mal.map(r=>`<li><b>${esc(EMPLEADOS[r.id].nombre)}</b>: ${esc(r.error||'')}${r.guardada?'. Está guardada: puedes copiar su enlace en la lista.':''}</li>`).join('')}</ul>`:''}
+    <div class="fila-btn"><button class="btn pri" data-x>Entendido</button></div>`);
+  m.el.addEventListener('click',e=>{ if(e.target.dataset.x!=null) m.cerrar(); });
+}
+$('#n-lista').addEventListener('click', async ev=>{
+  const d=ev.target.dataset;
+  try{
+    if(d.nVer){ const b=await DB.leerNominaPdf(d.nVer); if(!b) return toast('No se encontró el PDF'); return abrirPdf(b64aBytes(b)); }
+    if(d.nFirm){ const f=await DB.leerNominaFirmada(d.nFirm), info=await DB.leerNominaInfo(d.nFirm); if(!f) return toast('No se encontró la copia firmada');
+      return descargarBytes(b64aBytes(f.pdf), 'Nomina_'+nombreArchivo((info||{}).nombre)+'_'+nombreArchivo((info||{}).mesTxt)+'_firmada.pdf'); }
+    if(d.nLink){ const u=enlaceNomina(d.nLink);
+      try{ await navigator.clipboard.writeText(u); toast('Enlace copiado. Pégalo en WhatsApp o donde quieras.', true); }
+      catch(x){ const m=abrirModal(`<h3>Enlace de la nómina</h3><p class="sub">Cópialo y mándaselo solo a esa persona.</p><input value="${esc(u)}" readonly onclick="this.select()"><div class="fila-btn"><button class="btn pri" data-x>Cerrar</button></div>`); m.el.addEventListener('click',e=>{ if(e.target.dataset.x!=null) m.cerrar(); }); }
+      return; }
+    if(d.nReenv){ const [emp,t]=d.nReenv.split('|'), n=(NOMINAS[emp]||{})[t]||{}, info=await DB.leerNominaInfo(t);
+      const correo=(PERFILES[emp]||{}).email||'';
+      if(!correo) return toast('Este empleado no tiene correo personal. Pónselo en su ficha o copia el enlace.');
+      if(info && info.email!==correo) await DB.actualizarNominaInfo(t,{email:correo});   // usar el correo actual de su ficha
+      ev.target.disabled=true; const r=await avisarCorreo('enviar', t);
+      await DB.actualizarNomina(emp, t, r.ok ? {enviada:Date.now(), reenvios:(n.reenvios||0)+(n.enviada?1:0), errorCorreo:null} : {errorCorreo:r.error||'error'});
+      toast(r.ok?'Correo enviado de nuevo':'No se pudo enviar: '+esc(r.error||''), r.ok); return pintarNominas(); }
+    if(d.nDel){ const [emp,t]=d.nDel.split('|'), n=(NOMINAS[emp]||{})[t]||{};
+      if(!await confirmar(`Borrar la nómina de ${mesTexto(n.mes)} de ${(EMPLEADOS[emp]||{}).nombre}${NOM_ESTADO[t]?' (también la copia firmada)':''}. El enlace que le llegó dejará de funcionar.`)) return;
+      await DB.borrarNomina(emp,t); DB.auditar({accion:'borrar nómina', empId:emp, mes:n.mes}).catch(()=>{}); toast('Nómina borrada'); return pintarNominas(); }
+  }catch(x){ console.error(x); toast('No se pudo completar: '+esc(x.message||x)); }
+});
+$('#n-correos').addEventListener('click', async ev=>{
+  const id=ev.target.dataset.corSi||ev.target.dataset.corNo; if(!id) return;
+  const c=CORREOS_PEND[id], e=EMPLEADOS[id]||{nombre:c.nombre};
+  if(ev.target.dataset.corSi){
+    if(!await confirmar(`A partir de ahora las nóminas de ${e.nombre} irán a ${c.email}.`,'Sí, confirmar','Confirmar correo')) return;
+    const p={...(PERFILES[id]||{}), email:c.email}; await DB.guardarPerfil(id,p); PERFILES[id]=conMascara(p);
+    DB.auditar({accion:'confirmar correo personal', empId:id, nombre:e.nombre}).catch(()=>{});
+    toast('Correo de '+esc(e.nombre)+' confirmado', true);
+  } else {
+    if(!await confirmar(`Rechazar el correo ${c.email} de ${e.nombre}. Seguirá con el que tenía.`,'Sí, rechazar')) return;
+  }
+  await DB.borrarCorreoPend(id); pintarNominas();
+});
+$('#s-guardar-correo').onclick=async ()=>{
+  const u=$('#s-correo-url').value.trim();
+  if(u && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)) return toast('La dirección debe ser la del script: https://script.google.com/macros/s/…/exec');
+  await DB.guardarConfig({urlCorreo:u||null}); CONFIG=await DB.leerConfig(); toast('Guardado', true); pintarNominas(false);
+};
+$('#s-probar-correo').onclick=async ()=>{
+  if(!CONFIG.urlCorreo) return toast('Primero pega la dirección y pulsa Guardar');
+  const r=await avisarCorreo('prueba',''); toast(r.ok?'Correo de prueba enviado a '+esc(r.a||'vuestro Gmail')+'. Míralo en la bandeja de entrada.':'No funcionó: '+esc(r.error||'error'), r.ok);
+};
 
 /* Ajustes */
 $('#s-guardar-tienda').onclick=()=>{ tiendaTablet=$('#s-tienda').value; lsSet('fichaje_tienda',tiendaTablet); toast('Lugar de este dispositivo: '+(tiendaTablet||'sin asignar'), true); };
@@ -2164,6 +2686,8 @@ if ('serviceWorker' in navigator && (location.protocol==='https:' || location.ho
 (async function(){
   if (DB.modo==='demo' && DB.vacio() && lsGet('fichaje_sin_ejemplos')!=='1') await sembrarDemo();
   CONFIG = await DB.leerConfig();
+  const tokNomina = new URLSearchParams(location.search).get('nomina');
+  if (tokNomina) return paginaNomina(tokNomina);   // enlace del correo: solo la página para firmar la nómina
   if (DB.modo==='demo' && lsGet('fichaje_horas0')!=='1') { DB.borrarFichajes(); await DB.guardarConfig({inicioFichaje:hoyStr()}); CONFIG=await DB.leerConfig(); lsSet('fichaje_horas0','1'); }   // una vez: empezar las pruebas con las horas a cero
   if (DB.modo==='demo' && lsGet('fichaje_pin0000')!=='1') {   // una sola vez: todos los empleados con PIN provisional 0000
     const emps = await new Promise(r=>{ const off=DB.onEmpleados(e=>{ r(e); }); setTimeout(()=>off&&off(),0); });
